@@ -60,6 +60,17 @@
             <artifactId>flyway-database-postgresql</artifactId>
         </dependency>
 
+        <!-- Spring Boot 4.x split Flyway's autoconfiguration glue (the bean that
+             actually triggers the migration on startup) out of the old monolithic
+             spring-boot-autoconfigure into this dedicated module. flyway-core/
+             flyway-database-postgresql alone (above) no longer run V1__init_schema.sql
+             at all without it: this must be a real (compile-scope) dependency, not
+             test-only, or the deployed service silently never migrates its schema. -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-flyway</artifactId>
+        </dependency>
+
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-security</artifactId>
@@ -113,6 +124,15 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- Spring Boot 4.x split @DataJpaTest and its slice autoconfiguration out of
+             spring-boot-test-autoconfigure into their own per-feature test starter, unlike
+             3.x where spring-boot-starter-test alone was enough. -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-jpa-test</artifactId>
             <scope>test</scope>
         </dependency>
 
