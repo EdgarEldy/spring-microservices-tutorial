@@ -22,6 +22,13 @@ import org.springframework.stereotype.Component;
  * caller, or via {@code TransactionSynchronizationManager.registerSynchronization(...)}
  * with an {@code afterCommit()} callback.
  * <p>
+ * Neither publish method below waits on or attaches a callback to the
+ * {@code Future} that {@link KafkaTemplate#send} returns: a broker that is
+ * unreachable (e.g. {@code kafka} not yet added to {@code docker-compose.yml}
+ * as of this branch, see the README's "Order of work") fails the send
+ * asynchronously, visible only in producer logs, never as an exception the
+ * caller of {@code register()}/{@code forgotPassword()} would see.
+ * <p>
  * Created by Edgar Muhamyangabo on 8/15/26
  * Author : Edgar Muhamyangabo
  * Date : 8/15/26
