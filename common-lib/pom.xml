@@ -23,6 +23,26 @@
             <artifactId>spring-boot-starter</artifactId>
         </dependency>
 
+        <!-- BaseExceptionHandler compiles against @ExceptionHandler/ResponseEntity/HttpStatus,
+             which live in the plain spring-web module. Depending on spring-web directly (rather
+             than the spring-boot-starter-web starter) keeps common-lib free of Tomcat/Spring MVC
+             on its classpath, which matters once api-gateway (reactive, WebFlux) also depends on
+             common-lib: a servlet-stack starter pulled in transitively there would risk Spring
+             Boot auto-configuring the wrong web stack. Version stays aligned via the parent's
+             dependency management, same as every other dependency here. -->
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-web</artifactId>
+        </dependency>
+
+        <!-- LoggingAspect is a Spring AOP @Aspect (@Around advice), which needs the AspectJ
+             annotation/weaver support brought in by spring-boot-starter-aspectj. Spring Boot 4
+             renamed the old spring-boot-starter-aop starter to spring-boot-starter-aspectj. -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-aspectj</artifactId>
+        </dependency>
+
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
