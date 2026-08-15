@@ -56,10 +56,10 @@ class PermissionServiceImplTest {
                 .thenReturn(false);
         when(permissionRepository.save(any(Permission.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        Permission created = permissionService.create(request);
+        PermissionResponse created = permissionService.create(request);
 
-        assertThat(created.getResource()).isEqualTo("PRODUCT");
-        assertThat(created.getAction()).isEqualTo("WRITE");
+        assertThat(created.resource()).isEqualTo("PRODUCT");
+        assertThat(created.action()).isEqualTo("WRITE");
         verify(permissionRepository).save(any(Permission.class));
     }
 
@@ -80,7 +80,7 @@ class PermissionServiceImplTest {
         Permission permission = Permission.builder().id(1L).resource("PRODUCT").action("WRITE").build();
         when(permissionRepository.findAll()).thenReturn(List.of(permission));
 
-        assertThat(permissionService.findAll()).containsExactly(permission);
+        assertThat(permissionService.findAll()).containsExactly(new PermissionResponse(1L, "PRODUCT", "WRITE"));
     }
 
     @Test
@@ -101,14 +101,5 @@ class PermissionServiceImplTest {
                 .isThrownBy(() -> permissionService.delete(99L));
 
         verify(permissionRepository, never()).delete(any());
-    }
-
-    @Test
-    void toResponse_mapsFields() {
-        Permission permission = Permission.builder().id(1L).resource("PRODUCT").action("WRITE").build();
-
-        PermissionResponse response = permissionService.toResponse(permission);
-
-        assertThat(response).isEqualTo(new PermissionResponse(1L, "PRODUCT", "WRITE"));
     }
 }
