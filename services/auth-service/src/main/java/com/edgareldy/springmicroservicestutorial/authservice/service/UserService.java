@@ -1,6 +1,7 @@
 package com.edgareldy.springmicroservicestutorial.authservice.service;
 
 import com.edgareldy.springmicroservicestutorial.authservice.dto.auth.RegisterRequest;
+import com.edgareldy.springmicroservicestutorial.authservice.dto.user.UpdateProfileRequest;
 import com.edgareldy.springmicroservicestutorial.authservice.dto.user.UserResponse;
 import com.edgareldy.springmicroservicestutorial.authservice.entity.User;
 
@@ -42,6 +43,12 @@ public interface UserService {
 
     /** Encodes and persists a new password for the given user. */
     void updatePassword(Long userId, String newRawPassword);
+
+    /**
+     * Updates the mutable, non-credential part of a user's profile (first/last name).
+     * Throws {@code ResourceNotFoundException} if the user does not exist.
+     */
+    User updateProfile(Long userId, UpdateProfileRequest request);
 
     /** Maps a {@link User} entity to its public, credential-free {@link UserResponse} view. */
     UserResponse toResponse(User user);
