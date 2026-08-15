@@ -14,7 +14,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.edgareldy.springmicroservicestutorial.authservice.config.MethodSecurityConfig;
 import com.edgareldy.springmicroservicestutorial.authservice.dto.role.RoleRequest;
 import com.edgareldy.springmicroservicestutorial.authservice.dto.role.RoleResponse;
-import com.edgareldy.springmicroservicestutorial.authservice.entity.Role;
 import com.edgareldy.springmicroservicestutorial.authservice.repository.BlacklistedTokenRepository;
 import com.edgareldy.springmicroservicestutorial.authservice.security.CustomPermissionEvaluator;
 import com.edgareldy.springmicroservicestutorial.authservice.security.JwtService;
@@ -85,10 +84,6 @@ class RoleControllerTest {
     @MockitoBean
     private UserDetailsServiceImpl userDetailsService;
 
-    private static Role role(long id, String name) {
-        return Role.builder().id(id).roleName(name).build();
-    }
-
     private static RoleResponse response(long id, String name) {
         return new RoleResponse(id, name, List.of());
     }
@@ -96,8 +91,7 @@ class RoleControllerTest {
     @Test
     @WithMockUser(roles = "ADMIN")
     void findAllReturns200ForAdmin() throws Exception {
-        when(roleService.findAll()).thenReturn(List.of(role(1L, "ADMIN")));
-        when(roleService.toResponse(any())).thenReturn(response(1L, "ADMIN"));
+        when(roleService.findAll()).thenReturn(List.of(response(1L, "ADMIN")));
 
         mockMvc.perform(get("/api/v1/roles"))
                 .andExpect(status().isOk())
@@ -127,9 +121,7 @@ class RoleControllerTest {
     @WithMockUser(roles = "ADMIN")
     void createReturns201ForAdmin() throws Exception {
         RoleRequest request = new RoleRequest("MODERATOR");
-        Role created = role(2L, "MODERATOR");
-        when(roleService.create(any())).thenReturn(created);
-        when(roleService.toResponse(created)).thenReturn(response(2L, "MODERATOR"));
+        when(roleService.create(any())).thenReturn(response(2L, "MODERATOR"));
 
         mockMvc.perform(post("/api/v1/roles")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -185,9 +177,7 @@ class RoleControllerTest {
     @Test
     @WithMockUser(roles = "ADMIN")
     void addPermissionReturns200ForAdmin() throws Exception {
-        Role updated = role(1L, "ADMIN");
-        when(roleService.addPermission(1L, 2L)).thenReturn(updated);
-        when(roleService.toResponse(updated)).thenReturn(response(1L, "ADMIN"));
+        when(roleService.addPermission(1L, 2L)).thenReturn(response(1L, "ADMIN"));
 
         mockMvc.perform(post("/api/v1/roles/1/permissions/2"))
                 .andExpect(status().isOk())
@@ -207,9 +197,7 @@ class RoleControllerTest {
     @Test
     @WithMockUser(roles = "ADMIN")
     void removePermissionReturns200ForAdmin() throws Exception {
-        Role updated = role(1L, "ADMIN");
-        when(roleService.removePermission(1L, 2L)).thenReturn(updated);
-        when(roleService.toResponse(updated)).thenReturn(response(1L, "ADMIN"));
+        when(roleService.removePermission(1L, 2L)).thenReturn(response(1L, "ADMIN"));
 
         mockMvc.perform(delete("/api/v1/roles/1/permissions/2"))
                 .andExpect(status().isOk())
