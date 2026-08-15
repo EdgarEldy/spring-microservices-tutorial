@@ -19,6 +19,12 @@
 
     <dependencies>
         <dependency>
+            <groupId>com.edgareldy</groupId>
+            <artifactId>common-lib</artifactId>
+            <version>${revision}</version>
+        </dependency>
+
+        <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
