@@ -13,7 +13,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.edgareldy.springmicroservicestutorial.authservice.config.MethodSecurityConfig;
 import com.edgareldy.springmicroservicestutorial.authservice.dto.permission.PermissionRequest;
 import com.edgareldy.springmicroservicestutorial.authservice.dto.permission.PermissionResponse;
-import com.edgareldy.springmicroservicestutorial.authservice.entity.Permission;
 import com.edgareldy.springmicroservicestutorial.authservice.repository.BlacklistedTokenRepository;
 import com.edgareldy.springmicroservicestutorial.authservice.security.CustomPermissionEvaluator;
 import com.edgareldy.springmicroservicestutorial.authservice.security.JwtService;
@@ -77,10 +76,6 @@ class PermissionControllerTest {
     @MockitoBean
     private UserDetailsServiceImpl userDetailsService;
 
-    private static Permission permission(long id, String resource, String action) {
-        return Permission.builder().id(id).resource(resource).action(action).build();
-    }
-
     private static PermissionResponse response(long id, String resource, String action) {
         return new PermissionResponse(id, resource, action);
     }
@@ -88,8 +83,7 @@ class PermissionControllerTest {
     @Test
     @WithMockUser(roles = "ADMIN")
     void findAllReturns200ForAdmin() throws Exception {
-        when(permissionService.findAll()).thenReturn(List.of(permission(1L, "PRODUCT", "READ")));
-        when(permissionService.toResponse(any())).thenReturn(response(1L, "PRODUCT", "READ"));
+        when(permissionService.findAll()).thenReturn(List.of(response(1L, "PRODUCT", "READ")));
 
         mockMvc.perform(get("/api/v1/permissions"))
                 .andExpect(status().isOk())
@@ -119,9 +113,7 @@ class PermissionControllerTest {
     @WithMockUser(roles = "ADMIN")
     void createReturns201ForAdmin() throws Exception {
         PermissionRequest request = new PermissionRequest("ORDER", "WRITE");
-        Permission created = permission(2L, "ORDER", "WRITE");
-        when(permissionService.create(any())).thenReturn(created);
-        when(permissionService.toResponse(created)).thenReturn(response(2L, "ORDER", "WRITE"));
+        when(permissionService.create(any())).thenReturn(response(2L, "ORDER", "WRITE"));
 
         mockMvc.perform(post("/api/v1/permissions")
                         .contentType(MediaType.APPLICATION_JSON)

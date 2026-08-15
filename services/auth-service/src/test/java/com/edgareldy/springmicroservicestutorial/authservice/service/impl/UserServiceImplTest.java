@@ -11,28 +11,40 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.edgareldy.springmicroservicestutorial.authservice.dto.auth.RegisterRequest;
+import com.edgareldy.springmicroservicestutorial.authservice.dto.user.UpdateProfileRequest;
 import com.edgareldy.springmicroservicestutorial.authservice.dto.user.UserResponse;
 import com.edgareldy.springmicroservicestutorial.authservice.entity.Permission;
 import com.edgareldy.springmicroservicestutorial.authservice.entity.Role;
 import com.edgareldy.springmicroservicestutorial.authservice.entity.User;
+import com.edgareldy.springmicroservicestutorial.authservice.mapper.UserMapperImpl;
 import com.edgareldy.springmicroservicestutorial.authservice.repository.UserRepository;
 import com.edgareldy.springmicroservicestutorial.commonlib.exception.BusinessRuleException;
 import com.edgareldy.springmicroservicestutorial.commonlib.exception.ResourceNotFoundException;
 import java.util.Optional;
 import java.util.Set;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.test.util.ReflectionTestUtils;
 
 /**
  * Pure Mockito unit tests for {@link UserServiceImpl}: no Spring context, no
  * database, {@link UserRepository} and {@link PasswordEncoder} are mocked so
  * only this class' own branching is exercised (persistence itself is already
  * covered by {@code UserRepositoryTest}, backed by Testcontainers PostgreSQL).
+ * The MapStruct-generated {@link UserMapperImpl} is instantiated for real
+ * (not mocked) and wired manually rather than via {@code @InjectMocks}:
+ * mocking a trivial generated mapper would add nothing and would require
+ * stubbing every field of every {@code toResponse} call, so this class is
+ * exercised as it will actually run in production. {@code UserMapperImpl}
+ * declares its {@link PasswordEncoder} as an {@code @Autowired protected}
+ * field (MapStruct's field-injection style for abstract-class mappers), so
+ * it is wired with the same mock via {@link ReflectionTestUtils#setField}
+ * rather than a constructor argument.
  * <p>
  * Created by Edgar Muhamyangabo on 8/15/26
  * Author : Edgar Muhamyangabo
@@ -48,8 +60,14 @@ class UserServiceImplTest {
     @Mock
     private PasswordEncoder passwordEncoder;
 
-    @InjectMocks
     private UserServiceImpl userService;
+
+    @BeforeEach
+    void setUp() {
+        UserMapperImpl userMapper = new UserMapperImpl();
+        ReflectionTestUtils.setField(userMapper, "passwordEncoder", passwordEncoder);
+        userService = new UserServiceImpl(userRepository, passwordEncoder, userMapper);
+    }
 
     private final RegisterRequest request =
             new RegisterRequest("Ada", "Lovelace", "ada@example.com", "raw-password");
@@ -138,6 +156,29 @@ class UserServiceImplTest {
 
         assertThat(user.getPassword()).isEqualTo("new-encoded");
         verify(userRepository).save(user);
+    }
+
+    @Test
+    void updateProfile_updatesNamesAndSaves() {
+        User user = User.builder().id(1L).firstName("Ada").lastName("Lovelace").build();
+        when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+        when(userRepository.save(user)).thenReturn(user);
+
+        User updated = userService.updateProfile(1L, new UpdateProfileRequest("Grace", "Hopper"));
+
+        assertThat(updated.getFirstName()).isEqualTo("Grace");
+        assertThat(updated.getLastName()).isEqualTo("Hopper");
+        verify(userRepository).save(user);
+    }
+
+    @Test
+    void updateProfile_notFound_throwsResourceNotFoundExceptionAndNeverSaves() {
+        when(userRepository.findById(99L)).thenReturn(Optional.empty());
+
+        assertThatExceptionOfType(ResourceNotFoundException.class)
+                .isThrownBy(() -> userService.updateProfile(99L, new UpdateProfileRequest("Grace", "Hopper")));
+
+        verify(userRepository, never()).save(any());
     }
 
     @Test

@@ -2,7 +2,6 @@ package com.edgareldy.springmicroservicestutorial.authservice.controller;
 
 import com.edgareldy.springmicroservicestutorial.authservice.dto.permission.PermissionRequest;
 import com.edgareldy.springmicroservicestutorial.authservice.dto.permission.PermissionResponse;
-import com.edgareldy.springmicroservicestutorial.authservice.entity.Permission;
 import com.edgareldy.springmicroservicestutorial.authservice.service.PermissionService;
 import com.edgareldy.springmicroservicestutorial.commonlib.dto.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
@@ -42,17 +41,14 @@ public class PermissionController {
     @Operation(summary = "List all permissions")
     @GetMapping
     public ResponseEntity<ApiResponse<List<PermissionResponse>>> findAll() {
-        List<PermissionResponse> permissions =
-                permissionService.findAll().stream().map(permissionService::toResponse).toList();
-        return ResponseEntity.ok(ApiResponse.success(permissions, "Permissions retrieved"));
+        return ResponseEntity.ok(ApiResponse.success(permissionService.findAll(), "Permissions retrieved"));
     }
 
     @Operation(summary = "Create a permission")
     @PostMapping
     public ResponseEntity<ApiResponse<PermissionResponse>> create(@Valid @RequestBody PermissionRequest request) {
-        Permission permission = permissionService.create(request);
-        return ResponseEntity.status(HttpStatus.CREATED)
-                .body(ApiResponse.success(permissionService.toResponse(permission), "Permission created"));
+        PermissionResponse response = permissionService.create(request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(response, "Permission created"));
     }
 
     @Operation(summary = "Delete a permission")

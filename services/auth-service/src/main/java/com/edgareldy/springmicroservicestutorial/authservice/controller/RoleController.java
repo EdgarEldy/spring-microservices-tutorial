@@ -2,7 +2,6 @@ package com.edgareldy.springmicroservicestutorial.authservice.controller;
 
 import com.edgareldy.springmicroservicestutorial.authservice.dto.role.RoleRequest;
 import com.edgareldy.springmicroservicestutorial.authservice.dto.role.RoleResponse;
-import com.edgareldy.springmicroservicestutorial.authservice.entity.Role;
 import com.edgareldy.springmicroservicestutorial.authservice.service.RoleService;
 import com.edgareldy.springmicroservicestutorial.commonlib.dto.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
@@ -42,16 +41,14 @@ public class RoleController {
     @Operation(summary = "List all roles")
     @GetMapping
     public ResponseEntity<ApiResponse<List<RoleResponse>>> findAll() {
-        List<RoleResponse> roles = roleService.findAll().stream().map(roleService::toResponse).toList();
-        return ResponseEntity.ok(ApiResponse.success(roles, "Roles retrieved"));
+        return ResponseEntity.ok(ApiResponse.success(roleService.findAll(), "Roles retrieved"));
     }
 
     @Operation(summary = "Create a role")
     @PostMapping
     public ResponseEntity<ApiResponse<RoleResponse>> create(@Valid @RequestBody RoleRequest request) {
-        Role role = roleService.create(request);
-        return ResponseEntity.status(HttpStatus.CREATED)
-                .body(ApiResponse.success(roleService.toResponse(role), "Role created"));
+        RoleResponse response = roleService.create(request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(response, "Role created"));
     }
 
     @Operation(summary = "Delete a role")
@@ -65,15 +62,15 @@ public class RoleController {
     @PostMapping("/{roleId}/permissions/{permissionId}")
     public ResponseEntity<ApiResponse<RoleResponse>> addPermission(
             @PathVariable Long roleId, @PathVariable Long permissionId) {
-        Role role = roleService.addPermission(roleId, permissionId);
-        return ResponseEntity.ok(ApiResponse.success(roleService.toResponse(role), "Permission granted"));
+        RoleResponse response = roleService.addPermission(roleId, permissionId);
+        return ResponseEntity.ok(ApiResponse.success(response, "Permission granted"));
     }
 
     @Operation(summary = "Revoke a permission from a role")
     @DeleteMapping("/{roleId}/permissions/{permissionId}")
     public ResponseEntity<ApiResponse<RoleResponse>> removePermission(
             @PathVariable Long roleId, @PathVariable Long permissionId) {
-        Role role = roleService.removePermission(roleId, permissionId);
-        return ResponseEntity.ok(ApiResponse.success(roleService.toResponse(role), "Permission revoked"));
+        RoleResponse response = roleService.removePermission(roleId, permissionId);
+        return ResponseEntity.ok(ApiResponse.success(response, "Permission revoked"));
     }
 }

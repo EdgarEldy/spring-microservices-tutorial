@@ -10,21 +10,26 @@ import static org.mockito.Mockito.when;
 import com.edgareldy.springmicroservicestutorial.authservice.dto.permission.PermissionRequest;
 import com.edgareldy.springmicroservicestutorial.authservice.dto.permission.PermissionResponse;
 import com.edgareldy.springmicroservicestutorial.authservice.entity.Permission;
+import com.edgareldy.springmicroservicestutorial.authservice.mapper.PermissionMapperImpl;
 import com.edgareldy.springmicroservicestutorial.authservice.repository.PermissionRepository;
 import com.edgareldy.springmicroservicestutorial.commonlib.exception.BusinessRuleException;
 import com.edgareldy.springmicroservicestutorial.commonlib.exception.ResourceNotFoundException;
 import java.util.List;
 import java.util.Optional;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 /**
  * Pure Mockito unit tests for {@link PermissionServiceImpl}: {@link PermissionRepository}
  * is mocked, no Spring context and no database, complementing the
- * Testcontainers-backed {@code PermissionRepositoryTest}.
+ * Testcontainers-backed {@code PermissionRepositoryTest}. The MapStruct-generated
+ * {@link PermissionMapperImpl} is instantiated for real (not mocked) and wired
+ * manually rather than via {@code @InjectMocks}: mocking a trivial generated
+ * mapper would add nothing and would require stubbing every field of every
+ * {@code toResponse} call.
  * <p>
  * Created by Edgar Muhamyangabo on 8/15/26
  * Author : Edgar Muhamyangabo
@@ -37,8 +42,12 @@ class PermissionServiceImplTest {
     @Mock
     private PermissionRepository permissionRepository;
 
-    @InjectMocks
     private PermissionServiceImpl permissionService;
+
+    @BeforeEach
+    void setUp() {
+        permissionService = new PermissionServiceImpl(permissionRepository, new PermissionMapperImpl());
+    }
 
     @Test
     void create_newResourceActionPair_persistsAndReturnsPermission() {
@@ -47,10 +56,10 @@ class PermissionServiceImplTest {
                 .thenReturn(false);
         when(permissionRepository.save(any(Permission.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        Permission created = permissionService.create(request);
+        PermissionResponse created = permissionService.create(request);
 
-        assertThat(created.getResource()).isEqualTo("PRODUCT");
-        assertThat(created.getAction()).isEqualTo("WRITE");
+        assertThat(created.resource()).isEqualTo("PRODUCT");
+        assertThat(created.action()).isEqualTo("WRITE");
         verify(permissionRepository).save(any(Permission.class));
     }
 
@@ -71,7 +80,7 @@ class PermissionServiceImplTest {
         Permission permission = Permission.builder().id(1L).resource("PRODUCT").action("WRITE").build();
         when(permissionRepository.findAll()).thenReturn(List.of(permission));
 
-        assertThat(permissionService.findAll()).containsExactly(permission);
+        assertThat(permissionService.findAll()).containsExactly(new PermissionResponse(1L, "PRODUCT", "WRITE"));
     }
 
     @Test
@@ -92,14 +101,5 @@ class PermissionServiceImplTest {
                 .isThrownBy(() -> permissionService.delete(99L));
 
         verify(permissionRepository, never()).delete(any());
-    }
-
-    @Test
-    void toResponse_mapsFields() {
-        Permission permission = Permission.builder().id(1L).resource("PRODUCT").action("WRITE").build();
-
-        PermissionResponse response = permissionService.toResponse(permission);
-
-        assertThat(response).isEqualTo(new PermissionResponse(1L, "PRODUCT", "WRITE"));
     }
 }
