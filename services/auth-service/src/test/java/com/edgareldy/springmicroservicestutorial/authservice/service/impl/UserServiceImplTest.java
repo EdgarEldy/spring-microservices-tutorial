@@ -15,15 +15,16 @@ import com.edgareldy.springmicroservicestutorial.authservice.dto.user.UserRespon
 import com.edgareldy.springmicroservicestutorial.authservice.entity.Permission;
 import com.edgareldy.springmicroservicestutorial.authservice.entity.Role;
 import com.edgareldy.springmicroservicestutorial.authservice.entity.User;
+import com.edgareldy.springmicroservicestutorial.authservice.mapper.UserMapperImpl;
 import com.edgareldy.springmicroservicestutorial.authservice.repository.UserRepository;
 import com.edgareldy.springmicroservicestutorial.commonlib.exception.BusinessRuleException;
 import com.edgareldy.springmicroservicestutorial.commonlib.exception.ResourceNotFoundException;
 import java.util.Optional;
 import java.util.Set;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -33,6 +34,11 @@ import org.springframework.security.crypto.password.PasswordEncoder;
  * database, {@link UserRepository} and {@link PasswordEncoder} are mocked so
  * only this class' own branching is exercised (persistence itself is already
  * covered by {@code UserRepositoryTest}, backed by Testcontainers PostgreSQL).
+ * The MapStruct-generated {@link UserMapperImpl} is instantiated for real
+ * (not mocked) and wired manually rather than via {@code @InjectMocks}:
+ * mocking a trivial generated mapper would add nothing and would require
+ * stubbing every field of every {@code toResponse} call, so this class is
+ * exercised as it will actually run in production.
  * <p>
  * Created by Edgar Muhamyangabo on 8/15/26
  * Author : Edgar Muhamyangabo
@@ -48,8 +54,12 @@ class UserServiceImplTest {
     @Mock
     private PasswordEncoder passwordEncoder;
 
-    @InjectMocks
     private UserServiceImpl userService;
+
+    @BeforeEach
+    void setUp() {
+        userService = new UserServiceImpl(userRepository, passwordEncoder, new UserMapperImpl());
+    }
 
     private final RegisterRequest request =
             new RegisterRequest("Ada", "Lovelace", "ada@example.com", "raw-password");
