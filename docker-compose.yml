@@ -1,8 +1,7 @@
 # Started in feature/infrastructure (postgres, discovery-server, config-server)
 # and grown incrementally, one business service per feature branch, per the
-# README's "Order of work". Still missing here: catalog-service,
-# customer-service, order-service, notification-service, api-gateway, kafka,
-# redis, zipkin.
+# README's "Order of work". Still missing here: customer-service,
+# order-service, notification-service, api-gateway, kafka, redis, zipkin.
 #
 # Note on networking: config-repo/*.yml (shared, committed configuration also
 # used to run services locally straight from the IDE or `mvn spring-boot:run`)
@@ -135,3 +134,43 @@ services:
     # fetch times out) rather than surfacing as an HTTP error to the caller;
     # this is unchanged until feature/notification-service adds a real
     # `kafka` service here.
+
+  catalog-service:
+    build:
+      context: .
+      dockerfile: services/catalog-service/Dockerfile
+    container_name: catalog-service
+    ports:
+      - "8082:8082"
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      # Same rationale as auth-service above: overriding it here to the Docker
+      # Compose service name does not require touching any committed
+      # config-repo YAML, since catalog-service's local application.yml already
+      # builds the import URL from this env var.
+      CONFIG_SERVER_URL: http://config-server:8888
+      # postgres/postgres are the POSTGRES_USER/POSTGRES_PASSWORD of the
+      # `postgres` service above; `postgres` (not localhost) is its Docker
+      # Compose service name, resolvable on the shared `infra` network.
+      DB_URL: jdbc:postgresql://postgres:5432/catalog_db
+      DB_USERNAME: postgres
+      DB_PASSWORD: postgres
+      # MUST be the exact same value as auth-service's JWT_SECRET above:
+      # catalog-service only parses/verifies JWTs, it never issues one, and
+      # verification only succeeds if both services sign/verify with the same
+      # HMAC secret. Demo-only value, never a real production secret (see
+      # config-repo/catalog-service-prod.yml, ${JWT_SECRET} has no default).
+      JWT_SECRET: demo-only-jwt-secret-do-not-use-in-real-production-0123456789-auth-service
+    depends_on:
+      postgres:
+        # Hard requirement, unlike discovery-server/config-server below:
+        # catalog-service's DataSource bean fails fast at startup if it cannot
+        # reach Postgres at all, so it must wait for the healthcheck, not
+        # just for the container process to exist.
+        condition: service_healthy
+      discovery-server:
+        condition: service_started
+      config-server:
+        condition: service_started
+    networks:
+      - infra
