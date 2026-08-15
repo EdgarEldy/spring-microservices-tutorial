@@ -561,13 +561,13 @@ First branch, since every service below depends on it.
 
 ### Tasks
 
-- [ ] `ApiResponse<T>`, `PageResponse<T>`
-- [ ] `ResourceNotFoundException`, `BusinessRuleException`, `BaseExceptionHandler` (each service's own `@RestControllerAdvice` extends it, adding service-specific cases)
-- [ ] `LoggingAspect` (`@Around` on `com.edgareldy.springmicroservicestutorial.*.service..*`), logging method entry/exit and relying on Micrometer Tracing's MDC context (added properly once `feature/observability` is merged - until then, this aspect logs without a trace id, which is fine, since `common-lib` doesn't take on tracing as its own responsibility)
-- [ ] Published as a regular Maven dependency (`<dependency>`) in every service's `pom.xml`, never copy-pasted
-- [ ] Unit tests for `BaseExceptionHandler`'s mapping of each exception type
-- [ ] `.github/workflows/ci-common-lib.yml`, and every other service's CI job depends on this one succeeding first (since they all compile against it)
-- [ ] `.github/PULL_REQUEST_TEMPLATE.md`: repo-wide, used by every `feature/*` branch's PR from here on - sections for branch name, task checklist (copied from the relevant README section, checked off), commit summary, test checklist, code review checklist (contract/implementation pattern, `ApiResponse<T>` on every endpoint, no business logic leaking into `common-lib`)
+- [x] `ApiResponse<T>`, `PageResponse<T>`
+- [x] `ResourceNotFoundException`, `BusinessRuleException`, `BaseExceptionHandler` (each service's own `@RestControllerAdvice` extends it, adding service-specific cases)
+- [x] `LoggingAspect` (`@Around` on `com.edgareldy.springmicroservicestutorial.*.service..*`), logging method entry/exit and relying on Micrometer Tracing's MDC context (added properly once `feature/observability` is merged - until then, this aspect logs without a trace id, which is fine, since `common-lib` doesn't take on tracing as its own responsibility)
+- [x] Published as a regular Maven dependency (`<dependency>`) in every service's `pom.xml`, never copy-pasted
+- [x] Unit tests for `BaseExceptionHandler`'s mapping of each exception type
+- [x] `.github/workflows/ci-common-lib.yml`, and every other service's CI job depends on this one succeeding first (since they all compile against it)
+- [x] `.github/PULL_REQUEST_TEMPLATE.md`: repo-wide, used by every `feature/*` branch's PR from here on - sections for branch name, task checklist (copied from the relevant README section, checked off), commit summary, test checklist, code review checklist (contract/implementation pattern, `ApiResponse<T>` on every endpoint, no business logic leaking into `common-lib`)
 
 ## feature/infrastructure
 
