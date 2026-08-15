@@ -1,6 +1,7 @@
 package com.edgareldy.springmicroservicestutorial.authservice.service.impl;
 
 import com.edgareldy.springmicroservicestutorial.authservice.dto.auth.RegisterRequest;
+import com.edgareldy.springmicroservicestutorial.authservice.dto.user.UpdateProfileRequest;
 import com.edgareldy.springmicroservicestutorial.authservice.dto.user.UserResponse;
 import com.edgareldy.springmicroservicestutorial.authservice.entity.Role;
 import com.edgareldy.springmicroservicestutorial.authservice.entity.User;
@@ -75,6 +76,15 @@ public class UserServiceImpl implements UserService {
         User user = findById(userId);
         user.setPassword(passwordEncoder.encode(newRawPassword));
         userRepository.save(user);
+    }
+
+    @Override
+    @Transactional
+    public User updateProfile(Long userId, UpdateProfileRequest request) {
+        User user = findById(userId);
+        user.setFirstName(request.firstName());
+        user.setLastName(request.lastName());
+        return userRepository.save(user);
     }
 
     @Override
