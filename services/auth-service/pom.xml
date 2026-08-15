@@ -136,6 +136,16 @@
             <scope>test</scope>
         </dependency>
 
+        <!-- Same 4.x split as spring-boot-starter-data-jpa-test above, but for the MVC test
+             slice: @WebMvcTest/@AutoConfigureMockMvc moved out of spring-boot-test-autoconfigure
+             (which shrank to a small shared core in 4.x) into this dedicated starter. Without
+             it, spring-boot-starter-test alone no longer resolves those two annotations. -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-webmvc-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+
         <dependency>
             <groupId>org.springframework.security</groupId>
             <artifactId>spring-security-test</artifactId>
