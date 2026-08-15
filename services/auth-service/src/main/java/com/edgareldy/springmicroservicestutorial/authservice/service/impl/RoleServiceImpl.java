@@ -1,10 +1,10 @@
 package com.edgareldy.springmicroservicestutorial.authservice.service.impl;
 
-import com.edgareldy.springmicroservicestutorial.authservice.dto.permission.PermissionResponse;
 import com.edgareldy.springmicroservicestutorial.authservice.dto.role.RoleRequest;
 import com.edgareldy.springmicroservicestutorial.authservice.dto.role.RoleResponse;
 import com.edgareldy.springmicroservicestutorial.authservice.entity.Permission;
 import com.edgareldy.springmicroservicestutorial.authservice.entity.Role;
+import com.edgareldy.springmicroservicestutorial.authservice.mapper.RoleMapper;
 import com.edgareldy.springmicroservicestutorial.authservice.repository.PermissionRepository;
 import com.edgareldy.springmicroservicestutorial.authservice.repository.RoleRepository;
 import com.edgareldy.springmicroservicestutorial.authservice.service.RoleService;
@@ -17,7 +17,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Default {@link RoleService} implementation, backed by {@link RoleRepository}
- * and {@link PermissionRepository} for permission (un)assignment.
+ * and {@link PermissionRepository} for permission (un)assignment, delegating
+ * entity-to-DTO mapping to {@link RoleMapper}.
  * <p>
  * Created by Edgar Muhamyangabo on 8/15/26
  * Author : Edgar Muhamyangabo
@@ -30,6 +31,7 @@ public class RoleServiceImpl implements RoleService {
 
     private final RoleRepository roleRepository;
     private final PermissionRepository permissionRepository;
+    private final RoleMapper roleMapper;
 
     @Override
     @Transactional
@@ -83,9 +85,6 @@ public class RoleServiceImpl implements RoleService {
 
     @Override
     public RoleResponse toResponse(Role role) {
-        List<PermissionResponse> permissions = role.getPermissions().stream()
-                .map(permission -> new PermissionResponse(permission.getId(), permission.getResource(), permission.getAction()))
-                .toList();
-        return new RoleResponse(role.getId(), role.getRoleName(), permissions);
+        return roleMapper.toResponse(role);
     }
 }
