@@ -1,0 +1,6 @@
+# Profil test : api-gateway n'a pas de base de données, rien à fournir dynamiquement ici.
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
