@@ -1,0 +1,20 @@
+# Profil prod : scénario "docker-compose up" avec le conteneur PostgreSQL autonome
+# défini dans docker-compose.yml (credentials injectés en variables d'environnement
+# par ce même docker-compose, à raccorder dans une future branche).
+spring:
+  datasource:
+    url: ${DB_URL}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+  jpa:
+    show-sql: false
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+
+logging:
+  level:
+    root: INFO

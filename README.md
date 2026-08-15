@@ -575,13 +575,13 @@ First branch, since every service below depends on it.
 
 ### Tasks
 
-- [ ] `discovery-server`: `spring-cloud-starter-netflix-eureka-server`, `@EnableEurekaServer`, `application.yml` with `eureka.client.register-with-eureka=false`/`fetch-registry=false`
-- [ ] `config-server`: `spring-cloud-config-server`, `@EnableConfigServer`, native profile pointing at `src/main/resources/config-repo/`
-- [ ] One `<service-name>.yml` per business service in `config-repo/`, each declaring that service's datasource, server port, Eureka client settings, and (from `feature/observability` onward) tracing/Zipkin settings
-- [ ] Actuator health groups defined per service config: `management.endpoint.health.group.readiness.include` / `.liveness.include`, so each service exposes `/actuator/health/readiness` and `/actuator/health/liveness` separately from the general `/actuator/health`
-- [ ] `docker/postgres-init/01-create-databases.sql`: creates `auth_db`, `catalog_db`, `customer_db`, `order_db`
-- [ ] `docker-compose.yml`: `postgres`, `discovery-server`, `config-server` (the rest is added incrementally)
-- [ ] `.github/workflows/ci-discovery-server.yml`, `ci-config-server.yml`
+- [x] `discovery-server`: `spring-cloud-starter-netflix-eureka-server`, `@EnableEurekaServer`, `application.yml` with `eureka.client.register-with-eureka=false`/`fetch-registry=false`
+- [x] `config-server`: `spring-cloud-config-server`, `@EnableConfigServer`, native profile pointing at `src/main/resources/config-repo/`
+- [x] One `<service-name>.yml` per business service in `config-repo/`, each declaring that service's datasource, server port, Eureka client settings, and (from `feature/observability` onward) tracing/Zipkin settings
+- [x] Actuator health groups defined per service config: `management.endpoint.health.group.readiness.include` / `.liveness.include`, so each service exposes `/actuator/health/readiness` and `/actuator/health/liveness` separately from the general `/actuator/health`
+- [x] `docker/postgres-init/01-create-databases.sql`: creates `auth_db`, `catalog_db`, `customer_db`, `order_db`
+- [x] `docker-compose.yml`: `postgres`, `discovery-server`, `config-server` (the rest is added incrementally)
+- [x] `.github/workflows/ci-discovery-server.yml`, `ci-config-server.yml`
 
 ## feature/auth-service
 

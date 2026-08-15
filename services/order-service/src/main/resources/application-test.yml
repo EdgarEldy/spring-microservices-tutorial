@@ -1,0 +1,7 @@
+# Test profile: disables remote config import so order-service's tests
+# (unit/integration) never depend on a config-server actually running. Tests
+# supply their own config (via @TestPropertySource, this file itself, or
+# Testcontainers later).
+spring:
+  config:
+    import: ""

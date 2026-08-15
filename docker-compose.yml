@@ -1,0 +1,77 @@
+# feature/infrastructure: only postgres, discovery-server, and config-server.
+# The rest (auth-service, catalog-service, customer-service, order-service,
+# notification-service, api-gateway, kafka, redis, zipkin) is added
+# incrementally in the branches that introduce them, per the README.
+#
+# Note on networking: every service still points at localhost in its
+# application.yml/config-repo/*.yml (Postgres datasource, Eureka
+# defaultZone) rather than at these Docker Compose service names. That is
+# deliberate for this branch: config-repo/*.yml is shared, committed
+# configuration meant to work for both "run locally, straight from the IDE
+# or `mvn spring-boot:run`" and "run inside Docker", and this tutorial
+# hasn't yet introduced per-environment config (Spring profiles) to tell
+# those two cases apart. The `infra` network below already lets containers
+# resolve each other by Docker Compose service name (e.g. `postgres`,
+# `discovery-server`) for when that wiring is introduced, expected in a
+# later branch (api-gateway/observability) once every business service
+# actually runs inside this compose file and profile-based host overrides
+# are worth introducing.
+
+networks:
+  infra:
+    name: spring-microservices-tutorial-infra
+    driver: bridge
+
+volumes:
+  postgres-data:
+
+services:
+  postgres:
+    image: postgres:16
+    container_name: postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      # Read-only mount: scripts here run once, only against an empty data
+      # directory, to create auth_db/catalog_db/customer_db/order_db.
+      - ./docker/postgres-init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - infra
+
+  discovery-server:
+    build:
+      context: .
+      dockerfile: services/discovery-server/Dockerfile
+    container_name: discovery-server
+    ports:
+      - "8761:8761"
+    networks:
+      - infra
+    # No datasource, no dependency on postgres. Nothing else needs to be
+    # up before Eureka itself starts.
+
+  config-server:
+    build:
+      context: .
+      dockerfile: services/config-server/Dockerfile
+    container_name: config-server
+    ports:
+      - "8888:8888"
+    depends_on:
+      # Ordering only, not a hard runtime requirement: config-server serves
+      # config-repo/*.yml from its own classpath and never calls Eureka to
+      # do so. Starting discovery-server first just avoids every business
+      # service (added in later branches) racing config-server for a
+      # registry that isn't there yet on first `docker compose up`.
+      - discovery-server
+    networks:
+      - infra

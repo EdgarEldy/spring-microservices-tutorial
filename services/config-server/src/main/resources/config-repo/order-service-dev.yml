@@ -1,0 +1,24 @@
+# Profil dev : exécution locale hors Docker Compose, contre le conteneur PostgreSQL
+# partagé "postgres_main" déjà en marche sur cette machine (credentials superuser
+# admin/admin, port 5432 publié sur l'hôte). La base order_db y a été créée manuellement.
+#
+# Pas de config Flyway ni de spring.jpa.hibernate.ddl-auto ici volontairement : ce
+# service n'a encore ni entité JPA ni migration Flyway (arrivera dans feature/order-service).
+# Ajouter cette config maintenant serait prématuré pour un schéma qui n'existe pas encore.
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/order_db
+    username: admin
+    password: admin
+  jpa:
+    show-sql: true
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+
+logging:
+  level:
+    com.edgareldy.springmicroservicestutorial.orderservice: DEBUG

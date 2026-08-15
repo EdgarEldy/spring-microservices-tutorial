@@ -1,0 +1,11 @@
+# Profil prod : notification-service n'a pas de base de données (voir README, data
+# model), donc pas de bloc spring.datasource ici.
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+
+logging:
+  level:
+    root: INFO
