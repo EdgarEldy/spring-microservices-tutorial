@@ -1,6 +1,10 @@
 spring:
   application:
     name: api-gateway
+  config:
+    # Optional: the service must be able to start even when config-server is
+    # unavailable (useful for a pure unit test, without a full Spring context).
+    import: "optional:configserver:${CONFIG_SERVER_URL:http://localhost:8888}"
 
 server:
   port: 8080
