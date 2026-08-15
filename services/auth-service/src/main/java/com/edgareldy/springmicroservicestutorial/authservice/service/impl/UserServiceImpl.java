@@ -3,21 +3,21 @@ package com.edgareldy.springmicroservicestutorial.authservice.service.impl;
 import com.edgareldy.springmicroservicestutorial.authservice.dto.auth.RegisterRequest;
 import com.edgareldy.springmicroservicestutorial.authservice.dto.user.UpdateProfileRequest;
 import com.edgareldy.springmicroservicestutorial.authservice.dto.user.UserResponse;
-import com.edgareldy.springmicroservicestutorial.authservice.entity.Role;
 import com.edgareldy.springmicroservicestutorial.authservice.entity.User;
+import com.edgareldy.springmicroservicestutorial.authservice.mapper.UserMapper;
 import com.edgareldy.springmicroservicestutorial.authservice.repository.UserRepository;
 import com.edgareldy.springmicroservicestutorial.authservice.service.UserService;
 import com.edgareldy.springmicroservicestutorial.commonlib.exception.BusinessRuleException;
 import com.edgareldy.springmicroservicestutorial.commonlib.exception.ResourceNotFoundException;
-import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * Default {@link UserService} implementation, backed by {@link UserRepository}
- * and hashing new passwords with the shared {@link PasswordEncoder} bean.
+ * Default {@link UserService} implementation, backed by {@link UserRepository},
+ * hashing new passwords with the shared {@link PasswordEncoder} bean, and
+ * delegating entity-to-DTO mapping to {@link UserMapper}.
  * <p>
  * Created by Edgar Muhamyangabo on 8/15/26
  * Author : Edgar Muhamyangabo
@@ -30,6 +30,7 @@ public class UserServiceImpl implements UserService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final UserMapper userMapper;
 
     @Override
     @Transactional
@@ -89,17 +90,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public UserResponse toResponse(User user) {
-        List<String> roleNames = user.getRoles().stream()
-                .map(Role::getRoleName)
-                .toList();
-        return new UserResponse(
-                user.getId(),
-                user.getFirstName(),
-                user.getLastName(),
-                user.getEmail(),
-                user.isEnabled(),
-                user.isAccountLocked(),
-                roleNames);
+        return userMapper.toResponse(user);
     }
 
     @Override
