@@ -15,9 +15,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * Default {@link UserService} implementation, backed by {@link UserRepository},
- * hashing new passwords with the shared {@link PasswordEncoder} bean, and
- * delegating entity-to-DTO mapping to {@link UserMapper}.
+ * Default {@link UserService} implementation, backed by {@link UserRepository}
+ * and delegating entity-DTO mapping (in both directions, including password
+ * encoding on creation) to {@link UserMapper}. {@link PasswordEncoder} is
+ * still injected directly here for {@link #updatePassword}, which encodes a
+ * standalone raw password with no surrounding DTO to map from.
  * <p>
  * Created by Edgar Muhamyangabo on 8/15/26
  * Author : Edgar Muhamyangabo
@@ -38,14 +40,7 @@ public class UserServiceImpl implements UserService {
         if (userRepository.existsByEmailIgnoreCase(request.email())) {
             throw new BusinessRuleException("Email already in use: " + request.email());
         }
-        User user = User.builder()
-                .firstName(request.firstName())
-                .lastName(request.lastName())
-                .email(request.email())
-                .password(passwordEncoder.encode(request.password()))
-                .enabled(false)
-                .accountLocked(false)
-                .build();
+        User user = userMapper.toEntity(request);
         return userRepository.save(user);
     }
 
