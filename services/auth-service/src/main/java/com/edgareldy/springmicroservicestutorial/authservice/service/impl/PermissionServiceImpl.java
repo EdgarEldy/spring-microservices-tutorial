@@ -3,6 +3,7 @@ package com.edgareldy.springmicroservicestutorial.authservice.service.impl;
 import com.edgareldy.springmicroservicestutorial.authservice.dto.permission.PermissionRequest;
 import com.edgareldy.springmicroservicestutorial.authservice.dto.permission.PermissionResponse;
 import com.edgareldy.springmicroservicestutorial.authservice.entity.Permission;
+import com.edgareldy.springmicroservicestutorial.authservice.mapper.PermissionMapper;
 import com.edgareldy.springmicroservicestutorial.authservice.repository.PermissionRepository;
 import com.edgareldy.springmicroservicestutorial.authservice.service.PermissionService;
 import com.edgareldy.springmicroservicestutorial.commonlib.exception.BusinessRuleException;
@@ -14,7 +15,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Default {@link PermissionService} implementation, backed by
- * {@link PermissionRepository}.
+ * {@link PermissionRepository} and delegating entity-to-DTO mapping to
+ * {@link PermissionMapper}.
  * <p>
  * Created by Edgar Muhamyangabo on 8/15/26
  * Author : Edgar Muhamyangabo
@@ -26,6 +28,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class PermissionServiceImpl implements PermissionService {
 
     private final PermissionRepository permissionRepository;
+    private final PermissionMapper permissionMapper;
 
     @Override
     @Transactional
@@ -57,6 +60,6 @@ public class PermissionServiceImpl implements PermissionService {
 
     @Override
     public PermissionResponse toResponse(Permission permission) {
-        return new PermissionResponse(permission.getId(), permission.getResource(), permission.getAction());
+        return permissionMapper.toResponse(permission);
     }
 }
