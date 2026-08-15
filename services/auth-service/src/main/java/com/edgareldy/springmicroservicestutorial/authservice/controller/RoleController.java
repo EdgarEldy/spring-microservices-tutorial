@@ -58,7 +58,7 @@ public class RoleController {
     @DeleteMapping("/{id}")
     public ResponseEntity<ApiResponse<Void>> delete(@PathVariable Long id) {
         roleService.delete(id);
-        return ResponseEntity.noContent().build();
+        return ResponseEntity.ok(ApiResponse.success(null, "Role deleted"));
     }
 
     @Operation(summary = "Grant a permission to a role")
