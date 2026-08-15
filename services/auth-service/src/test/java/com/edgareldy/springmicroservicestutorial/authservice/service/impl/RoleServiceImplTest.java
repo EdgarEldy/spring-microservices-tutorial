@@ -11,6 +11,8 @@ import com.edgareldy.springmicroservicestutorial.authservice.dto.role.RoleReques
 import com.edgareldy.springmicroservicestutorial.authservice.dto.role.RoleResponse;
 import com.edgareldy.springmicroservicestutorial.authservice.entity.Permission;
 import com.edgareldy.springmicroservicestutorial.authservice.entity.Role;
+import com.edgareldy.springmicroservicestutorial.authservice.mapper.PermissionMapperImpl;
+import com.edgareldy.springmicroservicestutorial.authservice.mapper.RoleMapperImpl;
 import com.edgareldy.springmicroservicestutorial.authservice.repository.PermissionRepository;
 import com.edgareldy.springmicroservicestutorial.authservice.repository.RoleRepository;
 import com.edgareldy.springmicroservicestutorial.commonlib.exception.BusinessRuleException;
@@ -19,16 +21,26 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.test.util.ReflectionTestUtils;
 
 /**
  * Pure Mockito unit tests for {@link RoleServiceImpl}: {@link RoleRepository}
  * and {@link PermissionRepository} are mocked, no Spring context and no
  * database, complementing the Testcontainers-backed {@code RoleRepositoryTest}.
+ * The MapStruct-generated {@link RoleMapperImpl} (itself backed by a real
+ * {@link PermissionMapperImpl}) is instantiated for real and wired manually
+ * rather than via {@code @InjectMocks}: mocking a trivial generated mapper
+ * would add nothing and would require stubbing every field of every
+ * {@code toResponse} call. {@code componentModel = "spring"} makes MapStruct
+ * generate field injection ({@code @Autowired private PermissionMapper}), not
+ * a constructor parameter, so the dependency is wired via
+ * {@link ReflectionTestUtils#setField} after construction rather than passed
+ * to a constructor.
  * <p>
  * Created by Edgar Muhamyangabo on 8/15/26
  * Author : Edgar Muhamyangabo
@@ -44,8 +56,14 @@ class RoleServiceImplTest {
     @Mock
     private PermissionRepository permissionRepository;
 
-    @InjectMocks
     private RoleServiceImpl roleService;
+
+    @BeforeEach
+    void setUp() {
+        RoleMapperImpl roleMapper = new RoleMapperImpl();
+        ReflectionTestUtils.setField(roleMapper, "permissionMapper", new PermissionMapperImpl());
+        roleService = new RoleServiceImpl(roleRepository, permissionRepository, roleMapper);
+    }
 
     @Test
     void create_newRoleName_persistsAndReturnsRole() {
