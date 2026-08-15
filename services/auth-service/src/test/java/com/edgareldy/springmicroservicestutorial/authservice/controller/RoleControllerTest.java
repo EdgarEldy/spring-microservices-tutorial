@@ -154,10 +154,10 @@ class RoleControllerTest {
 
     @Test
     @WithMockUser(roles = "ADMIN")
-    void deleteReturns204ForAdminWithNoBody() throws Exception {
+    void deleteReturns200ForAdminWithApiResponseBody() throws Exception {
         mockMvc.perform(delete("/api/v1/roles/1"))
-                .andExpect(status().isNoContent())
-                .andExpect(jsonPath("$").doesNotExist());
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true));
 
         verify(roleService).delete(1L);
     }
