@@ -1,0 +1,34 @@
+name: CI - common-lib
+
+on:
+  push:
+    branches: [develop, master]
+    paths:
+      - 'common-lib/**'
+      - 'pom.xml'
+      - '.github/workflows/ci-common-lib.yml'
+  pull_request:
+    paths:
+      - 'common-lib/**'
+      - 'pom.xml'
+      - '.github/workflows/ci-common-lib.yml'
+  # Called by every future ci-<service>.yml as a `needs:` job, so a service's
+  # CI only proceeds once common-lib itself is known to build and test clean.
+  workflow_call:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+
+      - name: Build and test common-lib
+        run: mvn -B -pl common-lib -am test
