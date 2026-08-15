@@ -624,11 +624,11 @@ Same domain as `spring-security-tutorial`, packaged as one microservice among se
 
 ### Tasks
 
-- [ ] `Category`, `Product` entities, repositories, DTOs, contract/implementation services, controllers
-- [ ] Depends on `common-lib`
-- [ ] Registers with `discovery-server`, pulls config from `config-server`
-- [ ] Added to `docker-compose.yml`
-- [ ] Tests, including one verifying `GET /api/v1/catalog/products/{id}`'s exact response shape (formalized later by `feature/contract-testing`)
+- [x] `Category`, `Product` entities, repositories, DTOs, contract/implementation services, controllers
+- [x] Depends on `common-lib`
+- [x] Registers with `discovery-server`, pulls config from `config-server`
+- [x] Added to `docker-compose.yml`
+- [x] Tests, including one verifying `GET /api/v1/catalog/products/{id}`'s exact response shape (formalized later by `feature/contract-testing`)
 
 ## feature/customer-service
 
