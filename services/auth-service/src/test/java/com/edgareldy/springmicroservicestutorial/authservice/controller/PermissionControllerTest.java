@@ -147,10 +147,10 @@ class PermissionControllerTest {
 
     @Test
     @WithMockUser(roles = "ADMIN")
-    void deleteReturns204ForAdminWithNoBody() throws Exception {
+    void deleteReturns200ForAdminWithApiResponseBody() throws Exception {
         mockMvc.perform(delete("/api/v1/permissions/1"))
-                .andExpect(status().isNoContent())
-                .andExpect(jsonPath("$").doesNotExist());
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true));
 
         verify(permissionService).delete(1L);
     }
