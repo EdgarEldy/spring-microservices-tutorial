@@ -1,0 +1,6 @@
+# Prod profile: minimal actuator surface, only the health endpoint is exposed.
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
