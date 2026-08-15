@@ -601,14 +601,14 @@ Same domain as `spring-security-tutorial`, packaged as one microservice among se
 
 ### Tasks
 
-- [ ] Reuse the entity/repository/service/controller shape of `spring-security-tutorial`
-- [ ] **No `EmailService` in this service.** Where `spring-security-tutorial` called an `EmailService` directly to send the activation/reset e-mail, this service instead publishes an event and lets `notification-service` handle delivery - the same "one service owns everything that leaves the system" rule already applied to `order-service`
-- [ ] `AuthEventProducer`: publishes `UserRegisteredEvent` (userId, email, activation token) right after registration commits, and `PasswordResetRequestedEvent` (userId, email, reset token) right after a reset is requested - both published **after** the local transaction commits, same rule as `OrderCreatedEvent`
-- [ ] Depends on `common-lib` for `ApiResponse<T>` and base exceptions
-- [ ] Registers with `discovery-server`, pulls config from `config-server`
-- [ ] `JwtService` signs tokens with a shared secret/key, documented clearly since every other business service needs to validate the same tokens independently
-- [ ] Added to `docker-compose.yml`
-- [ ] Unit, repository, and controller tests, plus a test verifying both events are only published after their respective transactions commit
+- [x] Reuse the entity/repository/service/controller shape of `spring-security-tutorial`
+- [x] **No `EmailService` in this service.** Where `spring-security-tutorial` called an `EmailService` directly to send the activation/reset e-mail, this service instead publishes an event and lets `notification-service` handle delivery - the same "one service owns everything that leaves the system" rule already applied to `order-service`
+- [x] `AuthEventProducer`: publishes `UserRegisteredEvent` (userId, email, activation token) right after registration commits, and `PasswordResetRequestedEvent` (userId, email, reset token) right after a reset is requested - both published **after** the local transaction commits, same rule as `OrderCreatedEvent`
+- [x] Depends on `common-lib` for `ApiResponse<T>` and base exceptions
+- [x] Registers with `discovery-server`, pulls config from `config-server`
+- [x] `JwtService` signs tokens with a shared secret/key, documented clearly since every other business service needs to validate the same tokens independently
+- [x] Added to `docker-compose.yml`
+- [x] Unit, repository, and controller tests, plus a test verifying both events are only published after their respective transactions commit
 
 ## feature/catalog-service
 
