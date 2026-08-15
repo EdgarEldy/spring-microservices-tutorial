@@ -2,15 +2,18 @@ package com.edgareldy.springmicroservicestutorial.authservice.exception;
 
 import com.edgareldy.springmicroservicestutorial.commonlib.dto.ApiResponse;
 import com.edgareldy.springmicroservicestutorial.commonlib.exception.BaseExceptionHandler;
+import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.authentication.LockedException;
 import org.springframework.security.core.AuthenticationException;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
@@ -90,5 +93,33 @@ public class AuthExceptionHandler extends BaseExceptionHandler {
     protected ResponseEntity<ApiResponse<Object>> handleAuthentication(AuthenticationException ex) {
         log.debug("Authentication failed: {}", ex.getMessage());
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(ApiResponse.error("Invalid credentials"));
+    }
+
+    /**
+     * Maps a {@code @Valid} request body failure to a 400, collecting every field error into
+     * one readable message rather than letting it fall through to the catch-all 500: this
+     * exception is a client input problem, not an unexpected server failure.
+     */
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    protected ResponseEntity<ApiResponse<Object>> handleValidation(MethodArgumentNotValidException ex) {
+        String message = ex.getBindingResult().getFieldErrors().stream()
+                .map(error -> error.getField() + ": " + error.getDefaultMessage())
+                .collect(Collectors.joining("; "));
+        log.debug("Validation failed: {}", message);
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ApiResponse.error(message));
+    }
+
+    /**
+     * Maps a {@code @PreAuthorize} denial to a 403. Without this handler, {@link AccessDeniedException}
+     * thrown by the method-security AOP interceptor is caught by {@code DispatcherServlet}'s own
+     * exception resolver (which checks {@code @ControllerAdvice} beans) before it can ever reach
+     * {@code SecurityConfig}'s {@code ExceptionTranslationFilter}/{@code CustomAccessDeniedHandler},
+     * so that handler alone is not enough for this specific path; both now return the same
+     * "Access denied" message for consistency.
+     */
+    @ExceptionHandler(AccessDeniedException.class)
+    protected ResponseEntity<ApiResponse<Object>> handleAccessDenied(AccessDeniedException ex) {
+        log.debug("Access denied: {}", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(ApiResponse.error("Access denied"));
     }
 }
