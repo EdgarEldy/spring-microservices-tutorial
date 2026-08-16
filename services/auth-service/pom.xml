@@ -113,6 +113,18 @@
             <artifactId>spring-kafka</artifactId>
         </dependency>
 
+        <!-- Spring Boot 4.x split Kafka's autoconfiguration glue (KafkaAutoConfiguration,
+             the KafkaTemplate bean wiring driven by spring.kafka.* properties) out of the
+             old monolithic spring-boot-autoconfigure into this dedicated module, same
+             pattern as spring-boot-flyway below. spring-kafka alone (above) is not enough:
+             without this, no KafkaTemplate bean is ever created and AuthEventProducer fails
+             to start up at all (lesson from feature/order-service, caught there by a real
+             @SpringBootTest that this service never had one of). -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-kafka</artifactId>
+        </dependency>
+
         <dependency>
             <groupId>org.springdoc</groupId>
             <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
