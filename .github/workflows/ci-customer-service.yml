@@ -1,0 +1,37 @@
+name: CI - customer-service
+
+on:
+  push:
+    branches: [develop, master]
+    paths:
+      - 'services/customer-service/**'
+      - 'common-lib/**'
+      - 'pom.xml'
+      - '.github/workflows/ci-customer-service.yml'
+  pull_request:
+    paths:
+      - 'services/customer-service/**'
+      - 'common-lib/**'
+      - 'pom.xml'
+      - '.github/workflows/ci-customer-service.yml'
+
+jobs:
+  common-lib:
+    uses: ./.github/workflows/ci-common-lib.yml
+
+  build:
+    needs: common-lib
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+
+      - name: Build and test customer-service
+        run: mvn -B -pl services/customer-service -am test
