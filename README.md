@@ -709,12 +709,12 @@ Single entry point. Depends on every business service already being registered.
 
 ### Tasks
 
-- [ ] `spring-cloud-starter-gateway`, route definitions for each service, resolved via Eureka (`lb://` scheme, see [Load balancing](#load-balancing))
-- [ ] `JwtValidationGatewayFilter`: validates the JWT's signature/expiration on every route except `/api/v1/auth/register`, `/api/v1/auth/login`, `/api/v1/auth/activate-account`
-- [ ] `RateLimiterConfig`: Redis-backed `RequestRateLimiter` filter applied to `/api/v1/auth/login`, protecting `auth-service` against brute-force attempts (a fixed number of requests per second per client IP, configurable)
-- [ ] Registers with `discovery-server`, pulls config from `config-server`
-- [ ] Added to `docker-compose.yml`, along with a `redis` service; the only service with a port published to the host
-- [ ] Tests: routing to a mocked downstream, JWT rejection on a protected route without a token, pass-through on public routes, rate limiter returning 429 past the configured threshold
+- [x] `spring-cloud-starter-gateway`, route definitions for each service, resolved via Eureka (`lb://` scheme, see [Load balancing](#load-balancing))
+- [x] `JwtValidationGatewayFilter`: validates the JWT's signature/expiration on every route except `/api/v1/auth/register`, `/api/v1/auth/login`, `/api/v1/auth/activate-account`
+- [x] `RateLimiterConfig`: Redis-backed `RequestRateLimiter` filter applied to `/api/v1/auth/login`, protecting `auth-service` against brute-force attempts (a fixed number of requests per second per client IP, configurable)
+- [x] Registers with `discovery-server`, pulls config from `config-server`
+- [x] Added to `docker-compose.yml`, along with a `redis` service; the only service with a port published to the host
+- [x] Tests: routing to a mocked downstream, JWT rejection on a protected route without a token, pass-through on public routes, rate limiter returning 429 past the configured threshold
 
 ## feature/observability
 
