@@ -11,32 +11,39 @@ import com.edgareldy.springmicroservicestutorial.catalogservice.dto.ProductReque
 import com.edgareldy.springmicroservicestutorial.catalogservice.dto.ProductResponse;
 import com.edgareldy.springmicroservicestutorial.catalogservice.entity.Category;
 import com.edgareldy.springmicroservicestutorial.catalogservice.entity.Product;
+import com.edgareldy.springmicroservicestutorial.catalogservice.mapper.ProductMapperImpl;
 import com.edgareldy.springmicroservicestutorial.catalogservice.repository.CategoryRepository;
 import com.edgareldy.springmicroservicestutorial.catalogservice.repository.ProductRepository;
 import com.edgareldy.springmicroservicestutorial.commonlib.exception.ResourceNotFoundException;
 import java.util.List;
 import java.util.Optional;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.test.util.ReflectionTestUtils;
 
 /**
  * Pure Mockito unit tests for {@link ProductServiceImpl}: no Spring context,
  * no database, {@link ProductRepository}/{@link CategoryRepository} are
- * mocked so only this class' own branching/mapping logic is exercised
- * (persistence itself is already covered by {@code ProductRepositoryTest},
- * backed by Testcontainers PostgreSQL). {@code findById} is the most
- * important case here: {@code order-service} resolves {@code GET
- * /api/v1/catalog/products/{id}} via OpenFeign to validate/price an order,
- * so both the success path and the {@code ResourceNotFoundException} path
- * (mapped to 404 by {@code order-service}'s Feign error handling) matter.
+ * mocked so only this class' own branching logic is exercised (persistence
+ * itself is already covered by {@code ProductRepositoryTest}, backed by
+ * Testcontainers PostgreSQL). The MapStruct-generated {@link ProductMapperImpl}
+ * is instantiated for real (not mocked) and wired manually rather than via
+ * {@code @InjectMocks}: {@code componentModel = "spring"} makes MapStruct
+ * generate field injection ({@code @Autowired protected CategoryRepository}) on
+ * this abstract-class mapper, not a constructor parameter, so the dependency is
+ * wired via {@link ReflectionTestUtils#setField} after construction. {@code
+ * findById} is the most important case here: {@code order-service} resolves
+ * {@code GET /api/v1/catalog/products/{id}} via OpenFeign to validate/price an
+ * order, so both the success path and the {@code ResourceNotFoundException}
+ * path (mapped to 404 by {@code order-service}'s Feign error handling) matter.
  * <p>
  * Created by Edgar Muhamyangabo on 8/15/26
  * Author : Edgar Muhamyangabo
@@ -52,8 +59,14 @@ class ProductServiceImplTest {
     @Mock
     private CategoryRepository categoryRepository;
 
-    @InjectMocks
     private ProductServiceImpl productService;
+
+    @BeforeEach
+    void setUp() {
+        ProductMapperImpl productMapper = new ProductMapperImpl();
+        ReflectionTestUtils.setField(productMapper, "categoryRepository", categoryRepository);
+        productService = new ProductServiceImpl(productRepository, productMapper);
+    }
 
     private static Category category(long id) {
         return Category.builder().id(id).categoryName("Books").build();
@@ -66,11 +79,11 @@ class ProductServiceImplTest {
         when(categoryRepository.findById(1L)).thenReturn(Optional.of(category));
         when(productRepository.save(any(Product.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        Product created = productService.create(request);
+        ProductResponse created = productService.create(request);
 
-        assertThat(created.getProductName()).isEqualTo("Clean Code");
-        assertThat(created.getUnitPrice()).isEqualTo(39.90);
-        assertThat(created.getCategory()).isEqualTo(category);
+        assertThat(created.productName()).isEqualTo("Clean Code");
+        assertThat(created.unitPrice()).isEqualTo(39.90);
+        assertThat(created.categoryId()).isEqualTo(1L);
 
         ArgumentCaptor<Product> savedCaptor = ArgumentCaptor.forClass(Product.class);
         verify(productRepository).save(savedCaptor.capture());
@@ -95,9 +108,9 @@ class ProductServiceImplTest {
         Page<Product> page = new PageImpl<>(List.of(product), pageable, 1);
         when(productRepository.findByCategoryId(1L, pageable)).thenReturn(page);
 
-        Page<Product> result = productService.findAll(pageable, 1L);
+        Page<ProductResponse> result = productService.findAll(pageable, 1L);
 
-        assertThat(result.getContent()).containsExactly(product);
+        assertThat(result.getContent()).containsExactly(new ProductResponse(1L, "Clean Code", 39.90, 1L));
         verify(productRepository).findByCategoryId(1L, pageable);
         verify(productRepository, never()).findAll(pageable);
     }
@@ -109,19 +122,19 @@ class ProductServiceImplTest {
         Page<Product> page = new PageImpl<>(List.of(product), pageable, 1);
         when(productRepository.findAll(pageable)).thenReturn(page);
 
-        Page<Product> result = productService.findAll(pageable, null);
+        Page<ProductResponse> result = productService.findAll(pageable, null);
 
-        assertThat(result.getContent()).containsExactly(product);
+        assertThat(result.getContent()).containsExactly(new ProductResponse(1L, "Clean Code", 39.90, 1L));
         verify(productRepository).findAll(pageable);
         verify(productRepository, never()).findByCategoryId(any(), any());
     }
 
     @Test
-    void findById_found_returnsProduct() {
+    void findById_found_returnsProductResponse() {
         Product product = Product.builder().id(1L).category(category(1L)).productName("Clean Code").unitPrice(39.90).build();
         when(productRepository.findById(1L)).thenReturn(Optional.of(product));
 
-        assertThat(productService.findById(1L)).isEqualTo(product);
+        assertThat(productService.findById(1L)).isEqualTo(new ProductResponse(1L, "Clean Code", 39.90, 1L));
     }
 
     @Test
@@ -130,22 +143,5 @@ class ProductServiceImplTest {
 
         assertThatExceptionOfType(ResourceNotFoundException.class)
                 .isThrownBy(() -> productService.findById(99L));
-    }
-
-    @Test
-    void toResponse_mapsFieldsAndFlattensCategoryToPlainId() {
-        Product product = Product.builder()
-                .id(5L)
-                .category(category(2L))
-                .productName("Clean Code")
-                .unitPrice(39.90)
-                .build();
-
-        ProductResponse response = productService.toResponse(product);
-
-        assertThat(response.id()).isEqualTo(5L);
-        assertThat(response.productName()).isEqualTo("Clean Code");
-        assertThat(response.unitPrice()).isEqualTo(39.90);
-        assertThat(response.categoryId()).isEqualTo(2L);
     }
 }
