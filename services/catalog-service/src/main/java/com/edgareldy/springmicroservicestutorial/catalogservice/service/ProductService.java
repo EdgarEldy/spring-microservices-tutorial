@@ -9,7 +9,11 @@ import org.springframework.data.domain.Pageable;
 /**
  * Contract for managing {@link Product} records exposed under
  * {@code /api/v1/catalog/products}, including the detail endpoint
- * {@code order-service} resolves via OpenFeign.
+ * {@code order-service} resolves via OpenFeign. Every method returns {@link ProductResponse}
+ * directly rather than the {@link Product} entity: unlike {@code auth-service}'s
+ * {@code RoleService.findById}, nothing here reuses the managed entity internally across
+ * methods, the controller is the only caller, so there is no reason to keep any method
+ * entity-returning.
  * <p>
  * Created by Edgar Muhamyangabo on 8/15/26
  * Author : Edgar Muhamyangabo
@@ -22,14 +26,14 @@ public interface ProductService {
      * Creates a new product. Throws {@code ResourceNotFoundException} if
      * {@code request.categoryId()} does not match an existing category.
      */
-    Product create(ProductRequest request);
+    ProductResponse create(ProductRequest request);
 
     /**
      * Returns a page of products, backing {@code GET /api/v1/catalog/products}.
      * When {@code categoryId} is non-null, results are restricted to that
      * category; otherwise every product is returned.
      */
-    Page<Product> findAll(Pageable pageable, Long categoryId);
+    Page<ProductResponse> findAll(Pageable pageable, Long categoryId);
 
     /**
      * Looks up a product by id. Throws {@code ResourceNotFoundException} if
@@ -37,8 +41,5 @@ public interface ProductService {
      * endpoint {@code order-service} calls via Feign, so its response shape
      * must stay stable.
      */
-    Product findById(Long id);
-
-    /** Maps a {@link Product} entity to its public {@link ProductResponse} view. */
-    ProductResponse toResponse(Product product);
+    ProductResponse findById(Long id);
 }
