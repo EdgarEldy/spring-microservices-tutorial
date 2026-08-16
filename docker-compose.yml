@@ -1,7 +1,7 @@
 # Started in feature/infrastructure (postgres, discovery-server, config-server)
 # and grown incrementally, one business service per feature branch, per the
-# README's "Order of work". Still missing here: customer-service,
-# order-service, notification-service, api-gateway, kafka, redis, zipkin.
+# README's "Order of work". Still missing here: order-service,
+# notification-service, api-gateway, kafka, redis, zipkin.
 #
 # Note on networking: config-repo/*.yml (shared, committed configuration also
 # used to run services locally straight from the IDE or `mvn spring-boot:run`)
@@ -167,6 +167,32 @@ services:
         # catalog-service's DataSource bean fails fast at startup if it cannot
         # reach Postgres at all, so it must wait for the healthcheck, not
         # just for the container process to exist.
+        condition: service_healthy
+      discovery-server:
+        condition: service_started
+      config-server:
+        condition: service_started
+    networks:
+      - infra
+
+  customer-service:
+    build:
+      context: .
+      dockerfile: services/customer-service/Dockerfile
+    container_name: customer-service
+    ports:
+      - "8083:8083"
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      CONFIG_SERVER_URL: http://config-server:8888
+      DB_URL: jdbc:postgresql://postgres:5432/customer_db
+      DB_USERNAME: postgres
+      DB_PASSWORD: postgres
+      # MUST be the exact same value as auth-service's JWT_SECRET above: same
+      # rationale as catalog-service's own JWT_SECRET line.
+      JWT_SECRET: demo-only-jwt-secret-do-not-use-in-real-production-0123456789-auth-service
+    depends_on:
+      postgres:
         condition: service_healthy
       discovery-server:
         condition: service_started
