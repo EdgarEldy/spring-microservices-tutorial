@@ -524,12 +524,20 @@ spring-microservices-tutorial/
     └── api-gateway/
         └── src/main/java/com/edgareldy/springmicroservicestutorial/apigateway/
             ├── ApiGatewayApplication.java
-            ├── config/
-            │   ├── RouteConfig.java                    (route definitions, lb:// scheme)
-            │   ├── SecurityConfig.java                 (validates JWTs issued by auth-service)
-            │   └── RateLimiterConfig.java               (Redis-backed RequestRateLimiter on /api/v1/auth/login)
-            └── filter/
-                └── JwtValidationGatewayFilter.java
+            ├── security/
+            │   └── JwtService.java                      (verifies signature/expiration of JWTs issued by auth-service)
+            ├── filter/
+            │   └── JwtValidationGatewayFilter.java       (GlobalFilter, rejects a missing/invalid token on every
+            │                                              route except /api/v1/auth/register|login|activate-account;
+            │                                              no separate SecurityConfig - this GlobalFilter is the
+            │                                              gateway's entire JWT enforcement, no Spring Security
+            │                                              dependency needed for a routing layer that never builds
+            │                                              its own Authentication/principal)
+            └── config/
+                ├── RouteConfig.java                      (route definitions, lb:// scheme, one RouteLocator bean)
+                └── RateLimiterConfig.java                 (KeyResolver bean, per-client-IP, backing the
+                                                             Redis-backed RequestRateLimiter RouteConfig attaches to
+                                                             POST /api/v1/auth/login)
 ```
 
 ## Standard response format
