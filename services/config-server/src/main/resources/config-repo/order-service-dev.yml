@@ -1,10 +1,6 @@
 # Profil dev : exécution locale hors Docker Compose, contre le conteneur PostgreSQL
 # partagé "postgres_main" déjà en marche sur cette machine (credentials superuser
 # admin/admin, port 5432 publié sur l'hôte). La base order_db y a été créée manuellement.
-#
-# Pas de config Flyway ni de spring.jpa.hibernate.ddl-auto ici volontairement : ce
-# service n'a encore ni entité JPA ni migration Flyway (arrivera dans feature/order-service).
-# Ajouter cette config maintenant serait prématuré pour un schéma qui n'existe pas encore.
 spring:
   datasource:
     url: jdbc:postgresql://localhost:5432/order_db
@@ -12,12 +8,41 @@ spring:
     password: admin
   jpa:
     show-sql: true
+  # Pas de conteneur Kafka lancé par docker-compose.yml à ce stade du projet (ajouté
+  # dans feature/notification-service, cf. README "Order of work"). localhost:9092
+  # suppose un broker lancé à la main en local (ou aucun) : spring-kafka ne bloque
+  # pas le démarrage en son absence, la connexion producer est lazy et les échecs de
+  # publication n'apparaissent/ne réessaient qu'au moment du send (voir
+  # OrderEventProducer). Côté consumer, les deux listeners resteront simplement
+  # inactifs tant qu'aucun broker n'est joignable.
+  kafka:
+    bootstrap-servers: localhost:9092
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+    consumer:
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.ErrorHandlingDeserializer
+      properties:
+        spring.deserializer.value.delegate.class: org.springframework.kafka.support.serializer.JsonDeserializer
+        spring.json.trusted.packages: com.edgareldy.springmicroservicestutorial.orderservice.event
+        # Clés courtes partagées avec notification-service (feature/notification-service,
+        # pas encore construit) : chaque service garde sa propre classe locale pour le même
+        # événement (jamais de code de domaine partagé entre services), spring.json.type.mapping
+        # découple l'identifiant porté par le header Kafka __TypeId__ du nom de classe
+        # pleinement qualifié de chaque côté. À reproduire à l'identique côté producteur.
+        spring.json.type.mapping: orderConfirmed:com.edgareldy.springmicroservicestutorial.orderservice.event.OrderConfirmedEvent,notificationFailed:com.edgareldy.springmicroservicestutorial.orderservice.event.NotificationFailedEvent
 
 management:
   endpoints:
     web:
       exposure:
         include: health,info,metrics
+
+# Dev-only HMAC-SHA256 secret, same value across every service so a token issued by
+# auth-service verifies here too. Never used outside this machine.
+jwt:
+  secret: dev-only-jwt-secret-please-override-in-production-0123456789-auth-service
 
 logging:
   level:

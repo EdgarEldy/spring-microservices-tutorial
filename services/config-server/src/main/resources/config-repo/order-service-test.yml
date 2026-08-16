@@ -1,7 +1,19 @@
-# Profil test : pas de spring.datasource ici. Les tests d'intégration futurs (à partir
-# de feature/order-service, quand des entités JPA existeront) utiliseront Testcontainers
-# avec des credentials générés dynamiquement via @DynamicPropertySource ou equivalent,
-# pas cette config centralisée.
+# Test profile: no spring.datasource here. Integration tests use
+# Testcontainers with dynamically generated credentials via
+# @DynamicPropertySource or equivalent, not this centralized config. No Kafka
+# config either: tests use @EmbeddedKafka, wired via @DynamicPropertySource, not
+# this centralized bootstrap-servers value.
+#
+# WARNING, effectively dead in practice today: services/order-service/src/main/
+# resources/application-test.yml (local to the service) fully disables the
+# config-server import for this profile (spring.config.import: ""), so nothing
+# in this file ever reaches tests running with the "test" profile. jwt.secret
+# below is therefore duplicated directly in application-test.yml (the only file
+# actually read in tests); it stays here purely for structural consistency with
+# the other profiles/services.
+jwt:
+  secret: test-only-jwt-secret-not-for-any-real-use-0123456789-order-service
+
 management:
   endpoints:
     web:
