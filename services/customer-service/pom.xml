@@ -122,6 +122,12 @@
             <scope>provided</scope>
         </dependency>
 
+        <!-- Version pinned once in the root pom.xml's dependencyManagement, not here. -->
+        <dependency>
+            <groupId>org.mapstruct</groupId>
+            <artifactId>mapstruct</artifactId>
+        </dependency>
+
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
@@ -181,18 +187,28 @@
                 </configuration>
             </plugin>
 
-            <!-- No mapstruct in this branch (no complex mapping needed), so unlike
-                 auth-service's compiler plugin config, only the lombok annotation
-                 processor path is declared here. -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
                 <configuration>
+                    <!-- Order matters: lombok-mapstruct-binding must be resolved before
+                         mapstruct-processor so MapStruct sees Lombok-generated
+                         getters/setters/builders when generating mapper implementations. -->
                     <annotationProcessorPaths>
                         <path>
                             <groupId>org.projectlombok</groupId>
                             <artifactId>lombok</artifactId>
                             <version>${lombok.version}</version>
+                        </path>
+                        <path>
+                            <groupId>org.projectlombok</groupId>
+                            <artifactId>lombok-mapstruct-binding</artifactId>
+                            <version>${lombok-mapstruct-binding.version}</version>
+                        </path>
+                        <path>
+                            <groupId>org.mapstruct</groupId>
+                            <artifactId>mapstruct-processor</artifactId>
+                            <version>${mapstruct.version}</version>
                         </path>
                     </annotationProcessorPaths>
                 </configuration>
