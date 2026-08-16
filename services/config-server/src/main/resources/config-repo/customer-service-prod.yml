@@ -9,6 +9,15 @@ spring:
   jpa:
     show-sql: false
 
+# Deliberately no default here: a prod deployment without JWT_SECRET set must
+# fail at startup (see JwtService, @Value("${jwt.secret}") with no default)
+# rather than start with a guessable secret. SAME environment variable name as
+# auth-service-prod.yml (JWT_SECRET): both services must receive the same
+# value for cross-service token validation to work. Missing until now: without
+# this, customer-service would have failed to start under the prod profile.
+jwt:
+  secret: ${JWT_SECRET}
+
 management:
   endpoints:
     web:
