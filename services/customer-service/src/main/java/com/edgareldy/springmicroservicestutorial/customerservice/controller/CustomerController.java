@@ -4,7 +4,6 @@ import com.edgareldy.springmicroservicestutorial.commonlib.dto.ApiResponse;
 import com.edgareldy.springmicroservicestutorial.customerservice.dto.CustomerRequest;
 import com.edgareldy.springmicroservicestutorial.customerservice.dto.CustomerResponse;
 import com.edgareldy.springmicroservicestutorial.customerservice.dto.CustomerUpdateRequest;
-import com.edgareldy.springmicroservicestutorial.customerservice.entity.Customer;
 import com.edgareldy.springmicroservicestutorial.customerservice.service.CustomerService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -44,17 +43,15 @@ public class CustomerController {
             description = "Authenticated; also called by order-service via Feign")
     @GetMapping("/{id}")
     public ResponseEntity<ApiResponse<CustomerResponse>> findById(@PathVariable Long id) {
-        Customer customer = customerService.findById(id);
-        return ResponseEntity.ok(ApiResponse.success(customerService.toResponse(customer), "Customer retrieved"));
+        return ResponseEntity.ok(ApiResponse.success(customerService.findById(id), "Customer retrieved"));
     }
 
     @Operation(summary = "Create a customer profile",
             description = "Given an existing userId already registered in auth-service")
     @PostMapping
     public ResponseEntity<ApiResponse<CustomerResponse>> create(@Valid @RequestBody CustomerRequest request) {
-        Customer customer = customerService.create(request);
-        return ResponseEntity.status(HttpStatus.CREATED)
-                .body(ApiResponse.success(customerService.toResponse(customer), "Customer created"));
+        CustomerResponse response = customerService.create(request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(response, "Customer created"));
     }
 
     @Operation(summary = "Update a customer profile",
@@ -62,7 +59,6 @@ public class CustomerController {
     @PutMapping("/{id}")
     public ResponseEntity<ApiResponse<CustomerResponse>> update(
             @PathVariable Long id, @Valid @RequestBody CustomerUpdateRequest request) {
-        Customer customer = customerService.update(id, request);
-        return ResponseEntity.ok(ApiResponse.success(customerService.toResponse(customer), "Customer updated"));
+        return ResponseEntity.ok(ApiResponse.success(customerService.update(id, request), "Customer updated"));
     }
 }
