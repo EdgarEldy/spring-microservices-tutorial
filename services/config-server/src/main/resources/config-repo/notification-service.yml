@@ -17,3 +17,20 @@ management:
           include: readinessState
         liveness:
           include: livenessState
+  # See auth-service.yml's equivalent block for the sampling/ZIPKIN_URI rationale.
+  tracing:
+    sampling:
+      probability: 1.0
+  zipkin:
+    tracing:
+      endpoint: ${ZIPKIN_URI:http://localhost:9411/api/v2/spans}
+
+# See order-service.yml's equivalent block for the observation-enabled rationale:
+# this service both consumes (order-events, auth-events) and produces
+# (notification-events), hence both flags here too.
+spring:
+  kafka:
+    template:
+      observation-enabled: true
+    listener:
+      observation-enabled: true
