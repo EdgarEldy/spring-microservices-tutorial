@@ -1,7 +1,12 @@
 # Started in feature/infrastructure (postgres, discovery-server, config-server)
 # and grown incrementally, one business service per feature branch, per the
-# README's "Order of work". Still missing here: order-service,
-# notification-service, api-gateway, kafka, redis, zipkin.
+# README's "Order of work". Still missing here: notification-service,
+# api-gateway, kafka, redis, zipkin. order-service's own Kafka producer/consumers
+# stay pointed at KAFKA_BOOTSTRAP_SERVERS' default (kafka:9092, see
+# order-service-prod.yml) even though no "kafka" service exists here yet: that
+# container is added in feature/notification-service, per the README's branch
+# assignment - order-service degrades gracefully without it (lazy producer
+# connection, idle consumers) until then.
 #
 # Note on networking: config-repo/*.yml (shared, committed configuration also
 # used to run services locally straight from the IDE or `mvn spring-boot:run`)
@@ -191,6 +196,37 @@ services:
       # MUST be the exact same value as auth-service's JWT_SECRET above: same
       # rationale as catalog-service's own JWT_SECRET line.
       JWT_SECRET: demo-only-jwt-secret-do-not-use-in-real-production-0123456789-auth-service
+    depends_on:
+      postgres:
+        condition: service_healthy
+      discovery-server:
+        condition: service_started
+      config-server:
+        condition: service_started
+    networks:
+      - infra
+
+  order-service:
+    build:
+      context: .
+      dockerfile: services/order-service/Dockerfile
+    container_name: order-service
+    ports:
+      - "8084:8084"
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      CONFIG_SERVER_URL: http://config-server:8888
+      DB_URL: jdbc:postgresql://postgres:5432/order_db
+      DB_USERNAME: postgres
+      DB_PASSWORD: postgres
+      # MUST be the exact same value as auth-service's JWT_SECRET above: order-service
+      # both parses incoming JWTs itself and forwards them on to CustomerClient (see
+      # FeignConfig), so verification only succeeds if every service signs/verifies
+      # with the same HMAC secret.
+      JWT_SECRET: demo-only-jwt-secret-do-not-use-in-real-production-0123456789-auth-service
+      # No "kafka" service defined in this file yet, see the header comment above:
+      # KAFKA_BOOTSTRAP_SERVERS falls back to kafka:9092 in order-service-prod.yml,
+      # which simply never resolves until feature/notification-service adds it.
     depends_on:
       postgres:
         condition: service_healthy
