@@ -1,19 +1,30 @@
 # Started in feature/infrastructure (postgres, discovery-server, config-server)
 # and grown incrementally, one business service per feature branch, per the
-# README's "Order of work". Still missing here: api-gateway, redis, zipkin.
+# README's "Order of work". Still missing here: zipkin (feature/observability).
 #
 # Note on networking: config-repo/*.yml (shared, committed configuration also
 # used to run services locally straight from the IDE or `mvn spring-boot:run`)
-# still hardcodes localhost for anything environment-agnostic (Eureka's
-# defaultZone, still localhost:8761 for every profile including "prod": no
-# per-environment override exists for it yet). Anything that already varies
-# per Spring profile instead goes through env vars resolved to the `infra`
-# network's Docker Compose service names below (auth-service's DB_URL,
-# CONFIG_SERVER_URL, JWT_SECRET, all only wired for the "prod" profile used in
-# this compose file). Eureka's still-hardcoded-localhost is a known gap,
-# expected to be addressed in a later branch (api-gateway/observability) once
-# every business service actually runs inside this compose file and it is
-# worth introducing a profile-based override for it too.
+# resolves Eureka's defaultZone through EUREKA_URI (${EUREKA_URI:http://
+# localhost:8761/eureka/}, see e.g. config-repo/auth-service.yml), the same
+# override-via-env-var-with-a-localhost-default pattern CONFIG_SERVER_URL
+# already used before this branch. Previously hardcoded to localhost with no
+# override at all; fixed in feature/api-gateway once this compose file's own
+# api-gateway service made every business service actually needing to
+# register with discovery-server's *container* (not itself) a genuine
+# functional requirement, not just a known gap.
+#
+# Note on published ports: per the README's feature/api-gateway task list,
+# api-gateway is "the only service with a port published to the host" among
+# the business/infrastructure Spring services (discovery-server, config-server,
+# auth-service, catalog-service, customer-service, order-service,
+# notification-service, api-gateway) - every other request into this system
+# goes through it. postgres/kafka/redis below still publish theirs: they are
+# not part of that enumerated services list, and staying reachable directly
+# (psql, a Kafka client, redis-cli) is a deliberate local-development
+# convenience, not a bypass of the "single entry point" rule. discovery-server's
+# Eureka dashboard is consequently only reachable via `docker compose exec`/
+# `docker port`/a temporary manual port override while debugging, never a
+# permanent published port in this file.
 
 networks:
   infra:
@@ -50,20 +61,17 @@ services:
       context: .
       dockerfile: services/discovery-server/Dockerfile
     container_name: discovery-server
-    ports:
-      - "8761:8761"
     networks:
       - infra
     # No datasource, no dependency on postgres. Nothing else needs to be
-    # up before Eureka itself starts.
+    # up before Eureka itself starts. No published port (see the header
+    # comment's "Note on published ports").
 
   config-server:
     build:
       context: .
       dockerfile: services/config-server/Dockerfile
     container_name: config-server
-    ports:
-      - "8888:8888"
     depends_on:
       # Ordering only, not a hard runtime requirement: config-server serves
       # config-repo/*.yml from its own classpath and never calls Eureka to
@@ -79,21 +87,24 @@ services:
       context: .
       dockerfile: services/auth-service/Dockerfile
     container_name: auth-service
-    ports:
-      - "8081:8081"
     environment:
       SPRING_PROFILES_ACTIVE: prod
-      # Unlike config-repo/*.yml (still localhost-based, see the note at the
-      # top of this file), CONFIG_SERVER_URL is already an env-var override
-      # built into auth-service's local application.yml
-      # (spring.config.import: "optional:configserver:${CONFIG_SERVER_URL:...}"),
-      # so overriding it here to the Docker Compose service name does not
-      # require touching any committed config-repo YAML. Without this,
-      # auth-service would fail to fetch auth-service-prod.yml at all (the
-      # import is optional, so it would start with no datasource/JWT config
-      # instead of failing loudly), since "localhost:8888" inside this
-      # container is auth-service itself, not config-server.
+      # CONFIG_SERVER_URL is an env-var override built into auth-service's local
+      # application.yml (spring.config.import:
+      # "optional:configserver:${CONFIG_SERVER_URL:...}"), so overriding it here
+      # to the Docker Compose service name does not require touching any
+      # committed config-repo YAML. Without this, auth-service would fail to
+      # fetch auth-service-prod.yml at all (the import is optional, so it would
+      # start with no datasource/JWT config instead of failing loudly), since
+      # "localhost:8888" inside this container is auth-service itself, not
+      # config-server.
       CONFIG_SERVER_URL: http://config-server:8888
+      # See the header comment's "Note on networking": EUREKA_URI is resolved
+      # inside config-repo/auth-service.yml itself (${EUREKA_URI:http://
+      # localhost:8761/eureka/}), fetched via CONFIG_SERVER_URL above, so this
+      # override reaches auth-service through config-server rather than needing
+      # a local application.yml placeholder like CONFIG_SERVER_URL does.
+      EUREKA_URI: http://discovery-server:8761/eureka/
       # postgres/postgres are the POSTGRES_USER/POSTGRES_PASSWORD of the
       # `postgres` service above; `postgres` (not localhost) is its Docker
       # Compose service name, resolvable on the shared `infra` network.
@@ -136,8 +147,6 @@ services:
       context: .
       dockerfile: services/catalog-service/Dockerfile
     container_name: catalog-service
-    ports:
-      - "8082:8082"
     environment:
       SPRING_PROFILES_ACTIVE: prod
       # Same rationale as auth-service above: overriding it here to the Docker
@@ -145,6 +154,8 @@ services:
       # config-repo YAML, since catalog-service's local application.yml already
       # builds the import URL from this env var.
       CONFIG_SERVER_URL: http://config-server:8888
+      # Same rationale as auth-service's EUREKA_URI above.
+      EUREKA_URI: http://discovery-server:8761/eureka/
       # postgres/postgres are the POSTGRES_USER/POSTGRES_PASSWORD of the
       # `postgres` service above; `postgres` (not localhost) is its Docker
       # Compose service name, resolvable on the shared `infra` network.
@@ -176,11 +187,11 @@ services:
       context: .
       dockerfile: services/customer-service/Dockerfile
     container_name: customer-service
-    ports:
-      - "8083:8083"
     environment:
       SPRING_PROFILES_ACTIVE: prod
       CONFIG_SERVER_URL: http://config-server:8888
+      # Same rationale as auth-service's EUREKA_URI above.
+      EUREKA_URI: http://discovery-server:8761/eureka/
       DB_URL: jdbc:postgresql://postgres:5432/customer_db
       DB_USERNAME: postgres
       DB_PASSWORD: postgres
@@ -202,11 +213,11 @@ services:
       context: .
       dockerfile: services/order-service/Dockerfile
     container_name: order-service
-    ports:
-      - "8084:8084"
     environment:
       SPRING_PROFILES_ACTIVE: prod
       CONFIG_SERVER_URL: http://config-server:8888
+      # Same rationale as auth-service's EUREKA_URI above.
+      EUREKA_URI: http://discovery-server:8761/eureka/
       DB_URL: jdbc:postgresql://postgres:5432/order_db
       DB_USERNAME: postgres
       DB_PASSWORD: postgres
@@ -260,11 +271,11 @@ services:
       context: .
       dockerfile: services/notification-service/Dockerfile
     container_name: notification-service
-    ports:
-      - "8085:8085"
     environment:
       SPRING_PROFILES_ACTIVE: prod
       CONFIG_SERVER_URL: http://config-server:8888
+      # Same rationale as auth-service's EUREKA_URI above.
+      EUREKA_URI: http://discovery-server:8761/eureka/
       # No DB_URL/DB_USERNAME/DB_PASSWORD: this is the project's one database-less
       # service (see README's "Data model"), nothing here ever opens a DataSource.
     depends_on:
@@ -278,6 +289,50 @@ services:
         # waiting for kafka to have at least started (not necessarily fully ready,
         # same service_started condition used elsewhere in this file) still makes
         # more sense here than not waiting at all.
+        condition: service_started
+    networks:
+      - infra
+
+  # Backs api-gateway's RequestRateLimiter filter (see RateLimiterConfig,
+  # api-gateway.yml's routes). No password/persistence configured: this is
+  # rate-limiter token-bucket state only, never a source of truth for anything,
+  # safe to lose on restart.
+  redis:
+    image: redis:7-alpine
+    container_name: redis
+    ports:
+      - "6379:6379"
+    networks:
+      - infra
+
+  api-gateway:
+    build:
+      context: .
+      dockerfile: services/api-gateway/Dockerfile
+    container_name: api-gateway
+    # The only business/infrastructure service with a published port in this
+    # file (see the header comment's "Note on published ports"): every request
+    # into the system from outside this compose network goes through here.
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      CONFIG_SERVER_URL: http://config-server:8888
+      # Same rationale as auth-service's EUREKA_URI above; load-bearing here in
+      # particular, since every lb://<service-name> route depends on it.
+      EUREKA_URI: http://discovery-server:8761/eureka/
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      # MUST be the exact same value as auth-service's JWT_SECRET above:
+      # JwtValidationGatewayFilter verifies the same HMAC-signed tokens every
+      # other business service does.
+      JWT_SECRET: demo-only-jwt-secret-do-not-use-in-real-production-0123456789-auth-service
+    depends_on:
+      discovery-server:
+        condition: service_started
+      config-server:
+        condition: service_started
+      redis:
         condition: service_started
     networks:
       - infra
