@@ -7,24 +7,25 @@ import com.edgareldy.springmicroservicestutorial.customerservice.entity.Customer
 
 /**
  * Contract for managing {@link Customer} profiles exposed under
- * {@code /api/v1/customers}.
+ * {@code /api/v1/customers}. Every method returns {@link CustomerResponse} directly rather
+ * than the {@link Customer} entity: nothing outside this service ever needs the raw entity
+ * after a call, so there is no reason to make every caller repeat a {@code toResponse(...)}
+ * call, the same reasoning {@code catalog-service}'s {@code CategoryService}/
+ * {@code ProductService} already apply.
  * <p>
- * Created by Edgar Muhamyangabo on 8/15/26
+ * Created by Edgar Muhamyangabo on 8/16/26
  * Author : Edgar Muhamyangabo
- * Date : 8/15/26
+ * Date : 8/16/26
  * Project : spring-microservices-tutorial
  */
 public interface CustomerService {
 
     /** Creates a new customer profile for an already existing {@code userId}. */
-    Customer create(CustomerRequest request);
+    CustomerResponse create(CustomerRequest request);
 
     /** Looks a customer up by id, the endpoint {@code order-service} will call via Feign. */
-    Customer findById(Long id);
+    CustomerResponse findById(Long id);
 
     /** Updates every editable field of an existing customer; {@code userId} is left untouched. */
-    Customer update(Long id, CustomerUpdateRequest request);
-
-    /** Maps a {@link Customer} entity to its public {@link CustomerResponse} view. */
-    CustomerResponse toResponse(Customer customer);
+    CustomerResponse update(Long id, CustomerUpdateRequest request);
 }
