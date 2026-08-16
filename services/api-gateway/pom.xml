@@ -46,6 +46,26 @@
             <artifactId>spring-boot-starter-actuator</artifactId>
         </dependency>
 
+        <!-- Same rationale as auth-service's pom.xml (see feature/observability): no explicit
+             <version> needed, both come from spring-boot-dependencies' own BOM imports. -->
+        <dependency>
+            <groupId>io.micrometer</groupId>
+            <artifactId>micrometer-tracing-bridge-brave</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>io.zipkin.reporter2</groupId>
+            <artifactId>zipkin-reporter-brave</artifactId>
+        </dependency>
+
+        <!-- Same rationale as auth-service's pom.xml (see feature/observability):
+             without this, BraveAutoConfiguration/ZipkinWithBraveTracingAutoConfiguration
+             never run and the two dependencies above silently do nothing. -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-micrometer-tracing-brave</artifactId>
+        </dependency>
+
         <dependency>
             <groupId>org.springframework.cloud</groupId>
             <artifactId>spring-cloud-starter-config</artifactId>
