@@ -13,6 +13,16 @@ spring:
   jpa:
     show-sql: true
 
+# Dev-only HMAC-SHA256 secret: never used outside this machine, protects nothing
+# real. SAME value as auth-service-dev.yml (required: customer-service only ever
+# validates JWTs issued by auth-service, via the same symmetric HMAC key). Never
+# reuse this value in production (see customer-service-prod.yml, which requires
+# ${JWT_SECRET} with no default). Missing until now: JwtService requires this
+# property with no default (@Value("${jwt.secret}")), so customer-service would
+# have failed to start under the dev profile without it.
+jwt:
+  secret: dev-only-jwt-secret-please-override-in-production-0123456789-auth-service
+
 management:
   endpoints:
     web:
