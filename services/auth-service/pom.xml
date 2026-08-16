@@ -34,6 +34,42 @@
             <artifactId>spring-boot-starter-actuator</artifactId>
         </dependency>
 
+        <!-- Distributed tracing (see feature/observability): micrometer-tracing-bridge-brave
+             generates/propagates trace and span IDs (Micrometer Tracing instruments Spring MVC,
+             OpenFeign, and spring-kafka automatically) and surfaces them in the MDC, which is
+             where common-lib's LoggingAspect already reads its context from, no code change
+             needed there; zipkin-reporter-brave reports finished spans to Zipkin
+             (management.zipkin.tracing.endpoint, see config-repo). Both versions come from
+             spring-boot-dependencies' own micrometer-tracing-bom/zipkin-reporter-bom imports, no
+             explicit <version> needed here. -->
+        <dependency>
+            <groupId>io.micrometer</groupId>
+            <artifactId>micrometer-tracing-bridge-brave</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>io.zipkin.reporter2</groupId>
+            <artifactId>zipkin-reporter-brave</artifactId>
+        </dependency>
+
+        <!-- Same class of Spring Boot 4.x module-splitting gotcha as spring-boot-kafka
+             elsewhere in this project: the two dependencies above alone are NOT enough.
+             Spring Boot 4.1 moved BraveAutoConfiguration/ZipkinWithBraveTracingAutoConfiguration
+             (the glue that actually creates the Tracer bean, wires the MDC
+             traceId/spanId scope decorator, and configures the Zipkin reporter) out of
+             spring-boot-actuator-autoconfigure into this dedicated module. Without it,
+             every tracing dependency above is present on the classpath and silently does
+             nothing: no Tracer bean, no MDC correlation, no spans ever reported to
+             Zipkin, with no startup error or warning anywhere to say so. Verified live
+             (not merely by reading the release notes): with only the two dependencies
+             above, /actuator/conditions showed zero tracing-related autoconfiguration
+             classes evaluated at all, and LoggingAspect's log lines carried no
+             traceId/spanId; adding this dependency fixed both. -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-micrometer-tracing-brave</artifactId>
+        </dependency>
+
         <dependency>
             <groupId>org.springframework.cloud</groupId>
             <artifactId>spring-cloud-starter-config</artifactId>

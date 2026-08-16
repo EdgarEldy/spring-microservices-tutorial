@@ -19,6 +19,13 @@ management:
           include: readinessState
         liveness:
           include: livenessState
+  # See auth-service.yml's equivalent block for the sampling/ZIPKIN_URI rationale.
+  tracing:
+    sampling:
+      probability: 1.0
+  zipkin:
+    tracing:
+      endpoint: ${ZIPKIN_URI:http://localhost:9411/api/v2/spans}
 
 # No spring.cloud.gateway.server.webflux.routes here: routes are defined in Java
 # (RouteConfig, in this module's own config package) rather than YAML, so that

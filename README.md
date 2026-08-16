@@ -722,11 +722,11 @@ Distributed tracing across the whole system - arguably the single most useful ad
 
 ### Tasks
 
-- [ ] `micrometer-tracing-bridge-brave`, `zipkin-reporter-brave` added to every service (including `api-gateway`)
-- [ ] `zipkin` service added to `docker-compose.yml` (`openzipkin/zipkin` image), each service configured with `management.tracing.sampling.probability=1.0` for this tutorial (100% sampling - fine for a teaching project, would be lowered in real production)
-- [ ] Verify trace propagation across **both** communication styles: a single trace should show `api-gateway → order-service → catalog-service` (via Feign) as one connected trace, and a separate trace should show `order-service → notification-service` (via the Kafka message) as connected too - Micrometer Tracing instruments both Feign and Kafka automatically, but this must be verified by hand once, not assumed
-- [ ] `common-lib`'s `LoggingAspect` re-verified: logs now include the `traceId`/`spanId` in every line via the MDC, with no code change needed in the aspect itself
-- [ ] A short walkthrough (in this branch's own README) showing a captured trace in the Zipkin UI for a full order-creation request, annotated with what each span represents
+- [x] `micrometer-tracing-bridge-brave`, `zipkin-reporter-brave` added to every service (including `api-gateway`)
+- [x] `zipkin` service added to `docker-compose.yml` (`openzipkin/zipkin` image), each service configured with `management.tracing.sampling.probability=1.0` for this tutorial (100% sampling - fine for a teaching project, would be lowered in real production)
+- [ ] Verify trace propagation across **both** communication styles: a single trace should show `api-gateway → order-service → catalog-service` (via Feign) as one connected trace, and a separate trace should show `order-service → notification-service` (via the Kafka message) as connected too - Micrometer Tracing instruments both Feign and Kafka automatically, but this must be verified by hand once, not assumed (partially verified live: the choreographed Saga genuinely completed end to end and `LoggingAspect` logged a real `traceId`/`spanId`, see `docs/observability/README.md`; a real captured Zipkin trace JSON confirming both hops share one `traceId` was not obtained, left unchecked on purpose)
+- [x] `common-lib`'s `LoggingAspect` re-verified: logs now include the `traceId`/`spanId` in every line via the MDC, with no code change needed in the aspect itself
+- [ ] A short walkthrough (in this branch's own README) showing a captured trace in the Zipkin UI for a full order-creation request, annotated with what each span represents (`docs/observability/README.md` has the walkthrough and annotated span tables, but not an actual captured trace, see above)
 
 ## feature/resilience
 

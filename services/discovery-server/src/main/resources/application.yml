@@ -21,3 +21,14 @@ management:
           include: readinessState
         liveness:
           include: livenessState
+  # No config-server import for this service (it IS the discovery server), so
+  # this lives directly in its own local application.yml rather than
+  # config-repo, same ZIPKIN_URI env-var-overridable pattern used everywhere
+  # else (default localhost, overridden to the "zipkin" Docker Compose service
+  # name in docker-compose.yml). 100% sampling, fine for a teaching project.
+  tracing:
+    sampling:
+      probability: 1.0
+  zipkin:
+    tracing:
+      endpoint: ${ZIPKIN_URI:http://localhost:9411/api/v2/spans}
