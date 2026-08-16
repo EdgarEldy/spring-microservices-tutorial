@@ -17,3 +17,25 @@ management:
           include: readinessState
         liveness:
           include: livenessState
+  # See auth-service.yml's equivalent block for the sampling/ZIPKIN_URI rationale.
+  tracing:
+    sampling:
+      probability: 1.0
+  zipkin:
+    tracing:
+      endpoint: ${ZIPKIN_URI:http://localhost:9411/api/v2/spans}
+
+# Micrometer Tracing does NOT instrument Kafka producers/listeners purely by having
+# micrometer-tracing-bridge-brave on the classpath: spring.kafka.template/listener.
+# observation-enabled both default to false in spring-boot-kafka, and must be
+# explicitly turned on for trace context to actually propagate through the
+# __TypeId__/other Kafka record headers (order-service both produces
+# OrderCreatedEvent and consumes notification-events, hence both flags here).
+# Profile-agnostic (same in dev/prod/test), so set once here rather than in every
+# -dev.yml/-prod.yml.
+spring:
+  kafka:
+    template:
+      observation-enabled: true
+    listener:
+      observation-enabled: true
