@@ -1,6 +1,6 @@
 # Started in feature/infrastructure (postgres, discovery-server, config-server)
 # and grown incrementally, one business service per feature branch, per the
-# README's "Order of work". Still missing here: zipkin (feature/observability).
+# README's "Order of work".
 #
 # Note on networking: config-repo/*.yml (shared, committed configuration also
 # used to run services locally straight from the IDE or `mvn spring-boot:run`)
@@ -18,10 +18,11 @@
 # the business/infrastructure Spring services (discovery-server, config-server,
 # auth-service, catalog-service, customer-service, order-service,
 # notification-service, api-gateway) - every other request into this system
-# goes through it. postgres/kafka/redis below still publish theirs: they are
-# not part of that enumerated services list, and staying reachable directly
-# (psql, a Kafka client, redis-cli) is a deliberate local-development
-# convenience, not a bypass of the "single entry point" rule. discovery-server's
+# goes through it. postgres/kafka/redis/zipkin below still publish theirs:
+# they are not part of that enumerated services list, and staying reachable
+# directly (psql, a Kafka client, redis-cli, the Zipkin UI) is a deliberate
+# local-development convenience, not a bypass of the "single entry point"
+# rule. discovery-server's
 # Eureka dashboard is consequently only reachable via `docker compose exec`/
 # `docker port`/a temporary manual port override while debugging, never a
 # permanent published port in this file.
@@ -61,17 +62,30 @@ services:
       context: .
       dockerfile: services/discovery-server/Dockerfile
     container_name: discovery-server
+    environment:
+      # No config-server import for this service (see application.yml's own
+      # comment): ZIPKIN_URI is set directly here rather than via config-repo.
+      ZIPKIN_URI: http://zipkin:9411/api/v2/spans
+    depends_on:
+      zipkin:
+        # Soft dependency: the Zipkin reporter is fire-and-forget, a missing/
+        # not-yet-ready Zipkin only means spans are silently dropped, never a
+        # startup failure. service_started is enough, same reasoning as
+        # kafka's condition elsewhere in this file.
+        condition: service_started
     networks:
       - infra
-    # No datasource, no dependency on postgres. Nothing else needs to be
-    # up before Eureka itself starts. No published port (see the header
-    # comment's "Note on published ports").
+    # No datasource, no dependency on postgres. No published port (see the
+    # header comment's "Note on published ports").
 
   config-server:
     build:
       context: .
       dockerfile: services/config-server/Dockerfile
     container_name: config-server
+    environment:
+      # Same rationale as discovery-server's ZIPKIN_URI above.
+      ZIPKIN_URI: http://zipkin:9411/api/v2/spans
     depends_on:
       # Ordering only, not a hard runtime requirement: config-server serves
       # config-repo/*.yml from its own classpath and never calls Eureka to
@@ -79,6 +93,7 @@ services:
       # service (added in later branches) racing config-server for a
       # registry that isn't there yet on first `docker compose up`.
       - discovery-server
+      - zipkin
     networks:
       - infra
 
@@ -105,6 +120,9 @@ services:
       # override reaches auth-service through config-server rather than needing
       # a local application.yml placeholder like CONFIG_SERVER_URL does.
       EUREKA_URI: http://discovery-server:8761/eureka/
+      # Same rationale as EUREKA_URI above: resolved inside
+      # config-repo/auth-service.yml itself, fetched via CONFIG_SERVER_URL.
+      ZIPKIN_URI: http://zipkin:9411/api/v2/spans
       # postgres/postgres are the POSTGRES_USER/POSTGRES_PASSWORD of the
       # `postgres` service above; `postgres` (not localhost) is its Docker
       # Compose service name, resolvable on the shared `infra` network.
@@ -128,6 +146,11 @@ services:
       config-server:
         condition: service_started
       kafka:
+        condition: service_started
+      zipkin:
+        # Soft dependency, same reasoning as discovery-server's zipkin
+        # dependency above: a missing/not-yet-ready Zipkin only drops spans
+        # silently, never blocks startup.
         condition: service_started
     networks:
       - infra
@@ -156,6 +179,8 @@ services:
       CONFIG_SERVER_URL: http://config-server:8888
       # Same rationale as auth-service's EUREKA_URI above.
       EUREKA_URI: http://discovery-server:8761/eureka/
+      # Same rationale as auth-service's ZIPKIN_URI above.
+      ZIPKIN_URI: http://zipkin:9411/api/v2/spans
       # postgres/postgres are the POSTGRES_USER/POSTGRES_PASSWORD of the
       # `postgres` service above; `postgres` (not localhost) is its Docker
       # Compose service name, resolvable on the shared `infra` network.
@@ -179,6 +204,8 @@ services:
         condition: service_started
       config-server:
         condition: service_started
+      zipkin:
+        condition: service_started
     networks:
       - infra
 
@@ -192,6 +219,8 @@ services:
       CONFIG_SERVER_URL: http://config-server:8888
       # Same rationale as auth-service's EUREKA_URI above.
       EUREKA_URI: http://discovery-server:8761/eureka/
+      # Same rationale as auth-service's ZIPKIN_URI above.
+      ZIPKIN_URI: http://zipkin:9411/api/v2/spans
       DB_URL: jdbc:postgresql://postgres:5432/customer_db
       DB_USERNAME: postgres
       DB_PASSWORD: postgres
@@ -204,6 +233,8 @@ services:
       discovery-server:
         condition: service_started
       config-server:
+        condition: service_started
+      zipkin:
         condition: service_started
     networks:
       - infra
@@ -218,6 +249,8 @@ services:
       CONFIG_SERVER_URL: http://config-server:8888
       # Same rationale as auth-service's EUREKA_URI above.
       EUREKA_URI: http://discovery-server:8761/eureka/
+      # Same rationale as auth-service's ZIPKIN_URI above.
+      ZIPKIN_URI: http://zipkin:9411/api/v2/spans
       DB_URL: jdbc:postgresql://postgres:5432/order_db
       DB_USERNAME: postgres
       DB_PASSWORD: postgres
@@ -234,6 +267,8 @@ services:
       config-server:
         condition: service_started
       kafka:
+        condition: service_started
+      zipkin:
         condition: service_started
     networks:
       - infra
@@ -276,6 +311,8 @@ services:
       CONFIG_SERVER_URL: http://config-server:8888
       # Same rationale as auth-service's EUREKA_URI above.
       EUREKA_URI: http://discovery-server:8761/eureka/
+      # Same rationale as auth-service's ZIPKIN_URI above.
+      ZIPKIN_URI: http://zipkin:9411/api/v2/spans
       # No DB_URL/DB_USERNAME/DB_PASSWORD: this is the project's one database-less
       # service (see README's "Data model"), nothing here ever opens a DataSource.
     depends_on:
@@ -289,6 +326,8 @@ services:
         # waiting for kafka to have at least started (not necessarily fully ready,
         # same service_started condition used elsewhere in this file) still makes
         # more sense here than not waiting at all.
+        condition: service_started
+      zipkin:
         condition: service_started
     networks:
       - infra
@@ -321,6 +360,8 @@ services:
       # Same rationale as auth-service's EUREKA_URI above; load-bearing here in
       # particular, since every lb://<service-name> route depends on it.
       EUREKA_URI: http://discovery-server:8761/eureka/
+      # Same rationale as auth-service's ZIPKIN_URI above.
+      ZIPKIN_URI: http://zipkin:9411/api/v2/spans
       REDIS_HOST: redis
       REDIS_PORT: 6379
       # MUST be the exact same value as auth-service's JWT_SECRET above:
@@ -334,5 +375,21 @@ services:
         condition: service_started
       redis:
         condition: service_started
+      zipkin:
+        condition: service_started
+    networks:
+      - infra
+
+  # Distributed tracing UI/collector (see feature/observability): every service
+  # reports finished spans here (management.zipkin.tracing.endpoint,
+  # ZIPKIN_URI above), 100% sampled for this tutorial. Port published to the
+  # host for local inspection of the UI, same "convenience infra, not part of
+  # the API-gateway-only rule" treatment as postgres/kafka/redis above (see
+  # the header comment's "Note on published ports").
+  zipkin:
+    image: openzipkin/zipkin:latest
+    container_name: zipkin
+    ports:
+      - "9411:9411"
     networks:
       - infra
