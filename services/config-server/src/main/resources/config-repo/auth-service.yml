@@ -1,10 +1,16 @@
 server:
   port: 8081
 
+# EUREKA_URI overridden per Docker Compose service (see docker-compose.yml) to
+# discovery-server's container name; defaults to localhost for a plain IDE/
+# `mvn spring-boot:run` execution. Previously hardcoded, fixed as part of
+# feature/api-gateway once api-gateway's lb:// routing made this a genuine
+# functional requirement rather than just a known gap (see git history for the
+# comment this replaces at the top of docker-compose.yml).
 eureka:
   client:
     service-url:
-      defaultZone: http://localhost:8761/eureka/
+      defaultZone: ${EUREKA_URI:http://localhost:8761/eureka/}
 
 spring:
   flyway:
