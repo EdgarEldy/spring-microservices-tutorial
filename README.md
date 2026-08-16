@@ -642,12 +642,12 @@ Same domain as `spring-security-tutorial`, packaged as one microservice among se
 
 ### Tasks
 
-- [ ] `Customer` entity with a plain `userId` column (no FK to `auth-service`)
-- [ ] Repository, DTOs, contract/implementation service, controller
-- [ ] Depends on `common-lib`
-- [ ] Registers with `discovery-server`, pulls config from `config-server`
-- [ ] Added to `docker-compose.yml`
-- [ ] Tests, including one confirming `customer-service` never attempts a direct database call against `auth-service`'s schema
+- [x] `Customer` entity with a plain `userId` column (no FK to `auth-service`)
+- [x] Repository, DTOs, contract/implementation service, controller
+- [x] Depends on `common-lib`
+- [x] Registers with `discovery-server`, pulls config from `config-server`
+- [x] Added to `docker-compose.yml`
+- [x] Tests, including one confirming `customer-service` never attempts a direct database call against `auth-service`'s schema
 
 ## feature/order-service
 
