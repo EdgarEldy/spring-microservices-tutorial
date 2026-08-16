@@ -663,18 +663,18 @@ The only service that calls others synchronously, and the origin of the tutorial
 
 ### Tasks
 
-- [ ] `Order` entity (plain `customerId`/`productId` columns, `status` defaulting to `PENDING`), `IdempotencyKey` entity
-- [ ] `ProductClient` (`@FeignClient(name = "catalog-service")`), `CustomerClient` (`@FeignClient(name = "customer-service")`)
-- [ ] `@EnableFeignClients` on `OrderServiceApplication`
-- [ ] **Idempotent creation**: `POST /api/v1/orders` requires an `Idempotency-Key` header; before doing anything else, the service checks whether that key already exists in `idempotency_keys` - if so, it returns the previously created order instead of creating a duplicate (covers Feign's own retry-on-timeout behavior, and clients retrying after a dropped connection)
-- [ ] `OrderServiceImpl`: validates via both Feign clients, computes `total`, persists the order as `PENDING` and the idempotency key in the **same local transaction**, then - only after that transaction commits - publishes `OrderCreatedEvent` on Kafka (never publish before commit, or a consumer could react to an order that turns out not to exist)
-- [ ] `OrderConfirmedEventListener`: consumes the Saga's success event (`OrderConfirmedEvent`, published by `notification-service` once the confirmation notification is sent) and updates the order's `status` from `PENDING` to `CONFIRMED` - this is the only path that ever reaches `CONFIRMED`, an order left `PENDING` means the notification step hasn't resolved yet either way
-- [ ] `NotificationFailedEventListener`: consumes the Saga's compensating event (`NotificationFailedEvent`) from `notification-service` (see [Design patterns used](#design-patterns-used)) and updates the order's `status` to `CONFIRMATION_FAILED`
-- [ ] Explicit handling of a Feign call failing (`FeignException`) - mapped to a clear `BusinessRuleException`/404 rather than leaking a raw Feign stack trace
-- [ ] Depends on `common-lib`
-- [ ] Registers with `discovery-server`, pulls config from `config-server`
-- [ ] Added to `docker-compose.yml`
-- [ ] Tests: `WireMock` stubs for `ProductClient`/`CustomerClient` (success and failure), a repeated `POST` with the same `Idempotency-Key` returning the same order instead of creating a second one, an embedded/test Kafka broker verifying `OrderCreatedEvent` is only published after the transaction commits, and both `OrderConfirmedEventListener`/`NotificationFailedEventListener` correctly transitioning `status`
+- [x] `Order` entity (plain `customerId`/`productId` columns, `status` defaulting to `PENDING`), `IdempotencyKey` entity
+- [x] `ProductClient` (`@FeignClient(name = "catalog-service")`), `CustomerClient` (`@FeignClient(name = "customer-service")`)
+- [x] `@EnableFeignClients` on `OrderServiceApplication`
+- [x] **Idempotent creation**: `POST /api/v1/orders` requires an `Idempotency-Key` header; before doing anything else, the service checks whether that key already exists in `idempotency_keys` - if so, it returns the previously created order instead of creating a duplicate (covers Feign's own retry-on-timeout behavior, and clients retrying after a dropped connection)
+- [x] `OrderServiceImpl`: validates via both Feign clients, computes `total`, persists the order as `PENDING` and the idempotency key in the **same local transaction**, then - only after that transaction commits - publishes `OrderCreatedEvent` on Kafka (never publish before commit, or a consumer could react to an order that turns out not to exist)
+- [x] `OrderConfirmedEventListener`: consumes the Saga's success event (`OrderConfirmedEvent`, published by `notification-service` once the confirmation notification is sent) and updates the order's `status` from `PENDING` to `CONFIRMED` - this is the only path that ever reaches `CONFIRMED`, an order left `PENDING` means the notification step hasn't resolved yet either way
+- [x] `NotificationFailedEventListener`: consumes the Saga's compensating event (`NotificationFailedEvent`) from `notification-service` (see [Design patterns used](#design-patterns-used)) and updates the order's `status` to `CONFIRMATION_FAILED`
+- [x] Explicit handling of a Feign call failing (`FeignException`) - mapped to a clear `BusinessRuleException`/404 rather than leaking a raw Feign stack trace
+- [x] Depends on `common-lib`
+- [x] Registers with `discovery-server`, pulls config from `config-server`
+- [x] Added to `docker-compose.yml`
+- [x] Tests: `WireMock` stubs for `ProductClient`/`CustomerClient` (success and failure), a repeated `POST` with the same `Idempotency-Key` returning the same order instead of creating a second one, an embedded/test Kafka broker verifying `OrderCreatedEvent` is only published after the transaction commits, and both `OrderConfirmedEventListener`/`NotificationFailedEventListener` correctly transitioning `status`
 
 ## feature/notification-service
 
