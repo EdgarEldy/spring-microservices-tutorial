@@ -8,7 +8,10 @@ import org.springframework.data.domain.Pageable;
 
 /**
  * Contract for managing {@link Category} records exposed under
- * {@code /api/v1/catalog/categories}.
+ * {@code /api/v1/catalog/categories}. Every method returns {@link CategoryResponse} directly
+ * rather than the {@link Category} entity: nothing outside this service ever needs the raw
+ * entity after a call, so there is no reason to make every caller repeat a
+ * {@code toResponse(...)} call.
  * <p>
  * Created by Edgar Muhamyangabo on 8/15/26
  * Author : Edgar Muhamyangabo
@@ -18,11 +21,8 @@ import org.springframework.data.domain.Pageable;
 public interface CategoryService {
 
     /** Creates a new category. */
-    Category create(CategoryRequest request);
+    CategoryResponse create(CategoryRequest request);
 
     /** Returns a page of every category, backing {@code GET /api/v1/catalog/categories}. */
-    Page<Category> findAll(Pageable pageable);
-
-    /** Maps a {@link Category} entity to its public {@link CategoryResponse} view. */
-    CategoryResponse toResponse(Category category);
+    Page<CategoryResponse> findAll(Pageable pageable);
 }
