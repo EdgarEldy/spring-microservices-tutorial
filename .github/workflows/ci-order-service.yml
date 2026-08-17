@@ -40,8 +40,21 @@ jobs:
       # first. Tests are skipped here: each producer's own CI job (ci-catalog-service.yml,
       # ci-customer-service.yml) already runs its contract-verification test against its real
       # controller, re-running it again from a consumer's pipeline would be redundant.
-      - name: Install catalog-service and customer-service contract stubs
-        run: mvn -B -pl services/catalog-service,services/customer-service -am install -DskipTests
+      #
+      # Two separate invocations, not one "-pl services/catalog-service,services/customer-service"
+      # call: every other CI job in this repo builds exactly one service per mvn invocation, and
+      # combining two sibling modules in a single -pl list is a pattern this repo's CI had never
+      # exercised before this branch. That combined form reproducibly triggered a Maven plugin
+      # classloader conflict on this project's GitHub Actions runner specifically (a
+      # ClassCastException between two different copies of org.apache.httpcomponents:httpclient
+      # classes, loaded into two different plugin ClassRealms), never reproducible locally under
+      # any tested configuration, including a genuinely fresh, isolated local repository. Splitting
+      # back into the repo's established one-module-per-invocation pattern avoids it.
+      - name: Install catalog-service contract stub
+        run: mvn -B -pl services/catalog-service -am install -DskipTests
+
+      - name: Install customer-service contract stub
+        run: mvn -B -pl services/customer-service -am install -DskipTests
 
       - name: Build and test order-service
         run: mvn -B -pl services/order-service -am test
