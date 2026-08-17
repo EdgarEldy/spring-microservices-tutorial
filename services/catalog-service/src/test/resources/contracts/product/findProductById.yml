@@ -1,0 +1,32 @@
+# Contract for GET /api/v1/catalog/products/{id}, the public product detail endpoint
+# order-service resolves via OpenFeign to validate/price an order item. Describes the
+# success case only (product id 1 exists): the not-found (404) case is a controller-level
+# concern already covered by ProductControllerTest's own MockMvc test, not something a
+# consumer needs a stub for, since order-service already handles a Feign 404 itself.
+#
+# The response's "timestamp" field is ApiResponse's Instant.now() at call time, never a
+# fixed value, so it is matched with a regex (see the "matchers" block below) rather than
+# the literal example value used for the generated stub response body.
+description: Returns the product with id 1 wrapped in the common ApiResponse envelope
+name: findProductById
+request:
+  method: GET
+  url: /api/v1/catalog/products/1
+response:
+  status: 200
+  headers:
+    Content-Type: application/json
+  body:
+    success: true
+    message: "Product retrieved"
+    data:
+      id: 1
+      productName: "Clean Code"
+      unitPrice: 39.90
+      categoryId: 1
+    timestamp: "2026-08-16T00:00:00Z"
+  matchers:
+    body:
+      - path: $.timestamp
+        type: by_regex
+        predefined: iso_8601_with_offset

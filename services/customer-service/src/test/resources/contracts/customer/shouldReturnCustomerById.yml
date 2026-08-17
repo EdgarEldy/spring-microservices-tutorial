@@ -1,0 +1,38 @@
+# Producer-side contract for customer-service's GET /api/v1/customers/{id}. Describes the
+# success shape only (real security enforcement/401 handling stays a separate hand-written
+# test, per the README's documented contract-testing trade-off): shape verification is the
+# whole point of this contract, not an auth model.
+#
+# spring-cloud-contract-maven-plugin turns this into a generated JUnit test (run against
+# CustomerContractBase) at test-compile time, and into a WireMock mapping bundled into this
+# module's customer-service-*-stubs.jar on `mvn install`, for order-service (or any other
+# consumer) to pull in via spring-cloud-contract-stub-runner instead of a hand-written stub.
+description: Returns an existing customer profile by id
+name: shouldReturnCustomerById
+request:
+  method: GET
+  url: /api/v1/customers/1
+response:
+  status: 200
+  headers:
+    Content-Type: application/json
+  body:
+    success: true
+    message: "Customer retrieved"
+    data:
+      id: 1
+      userId: 1
+      firstName: "Ada"
+      lastName: "Lovelace"
+      telephone: "+1234567890"
+      email: "ada@example.com"
+      address: "123 Main St"
+    # Fixed value here only to give the generated stub/test a concrete JSON body; the
+    # matcher below overrides it so the generated test actually accepts any real
+    # Instant.now()-based timestamp ApiResponse.success(...) produces, not this literal.
+    timestamp: "2026-08-17T00:00:00Z"
+  matchers:
+    body:
+      - path: $.timestamp
+        type: by_regex
+        predefined: iso_8601_with_offset

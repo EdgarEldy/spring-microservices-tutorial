@@ -1,0 +1,42 @@
+# Profil dev : notification-service n'a pas de base de données (voir README, data
+# model), donc pas de bloc spring.datasource ici.
+#
+# Pas de conteneur Kafka lancé par docker-compose.yml en dev hors Compose :
+# localhost:9092 suppose un broker lancé à la main en local (ou aucun) ;
+# spring-kafka ne bloque pas le démarrage en son absence, les trois listeners
+# restent simplement inactifs et le producer ne se connecte que lazily.
+spring:
+  kafka:
+    bootstrap-servers: localhost:9092
+    consumer:
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.ErrorHandlingDeserializer
+      properties:
+        spring.deserializer.value.delegate.class: org.springframework.kafka.support.serializer.JsonDeserializer
+        spring.json.trusted.packages: com.edgareldy.springmicroservicestutorial.notificationservice.event
+        # order-service/auth-service's producers use a plain JsonSerializer with no
+        # type mapping of their own, so the __TypeId__ header they emit is each
+        # service's own fully-qualified class name; this maps those exact names to
+        # this service's local event classes (see event/OrderCreatedEvent.java's own
+        # Javadoc for why this direction differs from the producer mapping below).
+        spring.json.type.mapping: com.edgareldy.springmicroservicestutorial.orderservice.event.OrderCreatedEvent:com.edgareldy.springmicroservicestutorial.notificationservice.event.OrderCreatedEvent,com.edgareldy.springmicroservicestutorial.authservice.event.UserRegisteredEvent:com.edgareldy.springmicroservicestutorial.notificationservice.event.UserRegisteredEvent,com.edgareldy.springmicroservicestutorial.authservice.event.PasswordResetRequestedEvent:com.edgareldy.springmicroservicestutorial.notificationservice.event.PasswordResetRequestedEvent
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      properties:
+        # Short keys, deliberately not this service's own class names: order-service's
+        # OrderConfirmedEventListener/NotificationFailedEventListener were already built
+        # (feature/order-service) expecting these exact short __TypeId__ values on their
+        # consumer side (see that service's own config comments), so this producer emits
+        # them instead of its own fully-qualified class names.
+        spring.json.type.mapping: orderConfirmed:com.edgareldy.springmicroservicestutorial.notificationservice.event.OrderConfirmedEvent,notificationFailed:com.edgareldy.springmicroservicestutorial.notificationservice.event.NotificationFailedEvent
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+
+logging:
+  level:
+    com.edgareldy.springmicroservicestutorial.notificationservice: DEBUG

@@ -1,0 +1,95 @@
+server:
+  port: 8084
+
+# See auth-service.yml's equivalent block for the EUREKA_URI rationale.
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_URI:http://localhost:8761/eureka/}
+
+management:
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      group:
+        readiness:
+          include: readinessState
+        liveness:
+          include: livenessState
+  # See auth-service.yml's equivalent block for the sampling/ZIPKIN_URI rationale.
+  tracing:
+    sampling:
+      probability: 1.0
+  zipkin:
+    tracing:
+      endpoint: ${ZIPKIN_URI:http://localhost:9411/api/v2/spans}
+  # Feeds /actuator/circuitbreakers and /actuator/health's own circuitbreakers indicator
+  # (see feature/resilience). management.endpoints.web.exposure.include (per profile, see
+  # order-service-dev.yml/-prod.yml) is what actually publishes the endpoint over HTTP.
+  health:
+    circuitbreakers:
+      enabled: true
+
+# configs.default (not instances.catalog-service/instances.customer-service) on purpose:
+# Spring Cloud OpenFeign names each circuit breaker after Feign.configKey(targetType,
+# method) by default (something like "ProductClient#getProduct(Long)", alphanumerically
+# mangled), one breaker PER METHOD, not per @FeignClient name - an instances.<name> entry
+# keyed by "catalog-service" would silently configure a breaker nothing ever actually
+# uses, falling back to resilience4j's much higher built-in defaults instead (found live:
+# a test asserting the circuit opens after 5 failures stayed CLOSED with instances.*, even
+# with spring.cloud.openfeign.circuitbreaker.group.enabled=true below, which was expected
+# to make the breaker name match the client name and did not resolve this either).
+# configs.default applies to every circuit breaker in this service regardless of its
+# resolved name, sidestepping the naming question entirely: both ProductClient and
+# CustomerClient use identical settings anyway, so one shared config is sufficient here.
+resilience4j:
+  circuitbreaker:
+    configs:
+      default:
+        sliding-window-size: 5
+        minimum-number-of-calls: 5
+        failure-rate-threshold: 50
+        wait-duration-in-open-state: 10s
+        permitted-number-of-calls-in-half-open-state: 3
+        # A 404 (product/customer genuinely does not exist) is a real answer, not an
+        # outage: it must never count toward the failure rate that opens a circuit, or
+        # normal traffic hitting a bad id under load could trip a breaker on its own.
+        # ProductClientFallbackFactory/CustomerClientFallbackFactory still run for a 404
+        # (a FallbackFactory always runs on failure regardless of this list), they just
+        # re-throw ResourceNotFoundException there instead of BusinessRuleException; this
+        # list only controls what counts toward opening the circuit.
+        ignore-exceptions:
+          - feign.FeignException$NotFound
+
+# Micrometer Tracing does NOT instrument Kafka producers/listeners purely by having
+# micrometer-tracing-bridge-brave on the classpath: spring.kafka.template/listener.
+# observation-enabled both default to false in spring-boot-kafka, and must be
+# explicitly turned on for trace context to actually propagate through the
+# __TypeId__/other Kafka record headers (order-service both produces
+# OrderCreatedEvent and consumes notification-events, hence both flags here).
+# Profile-agnostic (same in dev/prod/test), so set once here rather than in every
+# -dev.yml/-prod.yml.
+spring:
+  kafka:
+    template:
+      observation-enabled: true
+    listener:
+      observation-enabled: true
+  cloud:
+    # Wraps ProductClient/CustomerClient in a Resilience4j circuit breaker (see
+    # feature/resilience): this is what makes Spring Cloud OpenFeign actually route every
+    # call through a CircuitBreakerFactory bean and, on failure, the @FeignClient's own
+    # fallbackFactory; without it, the fallbackFactory attribute on ProductClient/
+    # CustomerClient is inert.
+    openfeign:
+      circuitbreaker:
+        enabled: true
+        # Groups each circuit breaker under its Feign client's own name (catalog-service,
+        # customer-service) rather than Spring Cloud OpenFeign's default per-method naming
+        # (see resilience4j.circuitbreaker.configs.default's own comment below for why
+        # per-method naming matters here): readable names in /actuator/circuitbreakers,
+        # one breaker per downstream service, matching the README's "circuit breaker
+        # configuration around ProductClient/CustomerClient" (client-level, not per-method).
+        group:
+          enabled: true

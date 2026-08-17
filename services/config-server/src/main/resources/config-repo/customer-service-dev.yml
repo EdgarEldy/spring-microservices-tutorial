@@ -1,0 +1,34 @@
+# Profil dev : exécution locale hors Docker Compose, contre le conteneur PostgreSQL
+# partagé "postgres_main" déjà en marche sur cette machine (credentials superuser
+# admin/admin, port 5432 publié sur l'hôte). La base customer_db y a été créée manuellement.
+#
+# Pas de config Flyway ni de spring.jpa.hibernate.ddl-auto ici volontairement : ce
+# service n'a encore ni entité JPA ni migration Flyway (arrivera dans feature/customer-service).
+# Ajouter cette config maintenant serait prématuré pour un schéma qui n'existe pas encore.
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/customer_db
+    username: admin
+    password: admin
+  jpa:
+    show-sql: true
+
+# Dev-only HMAC-SHA256 secret: never used outside this machine, protects nothing
+# real. SAME value as auth-service-dev.yml (required: customer-service only ever
+# validates JWTs issued by auth-service, via the same symmetric HMAC key). Never
+# reuse this value in production (see customer-service-prod.yml, which requires
+# ${JWT_SECRET} with no default). Missing until now: JwtService requires this
+# property with no default (@Value("${jwt.secret}")), so customer-service would
+# have failed to start under the dev profile without it.
+jwt:
+  secret: dev-only-jwt-secret-please-override-in-production-0123456789-auth-service
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+
+logging:
+  level:
+    com.edgareldy.springmicroservicestutorial.customerservice: DEBUG

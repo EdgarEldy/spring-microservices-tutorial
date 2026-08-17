@@ -1,0 +1,29 @@
+# Test profile: disables remote config import so api-gateway's tests
+# (unit/integration) never depend on a config-server actually running. Tests
+# supply their own config (via @TestPropertySource, this file itself, or
+# Testcontainers later).
+#
+# RouteConfig (this module's own config package) always registers its real
+# lb://-based "routes" RouteLocator bean regardless of profile, since it is
+# plain component-scanned Java, not driven by config-repo YAML. Those lb://
+# targets never resolve in a test (no real Eureka registry, and
+# eureka.client.enabled=false below anyway), so tests that exercise real HTTP
+# routing instead define their own ad hoc @TestConfiguration RouteLocator bean,
+# also named "routes", pointing directly at a WireMock instance - Spring Boot's
+# same-name @Bean override (enabled below) replaces RouteConfig's bean for that
+# test entirely rather than adding a second, colliding RouteLocator.
+spring:
+  config:
+    import: ""
+  main:
+    allow-bean-definition-overriding: true
+
+# jwt.secret is duplicated here on purpose, same pattern as every other business
+# service's application-test.yml: config-repo/api-gateway-test.yml also defines
+# it, but spring.config.import is blank above, so that remote file is never
+# fetched by anything running with the "test" profile. JwtService requires this
+# property with no default (@Value("${jwt.secret}")), so without this block
+# every test that loads a Spring context touching JwtService would fail at
+# context startup.
+jwt:
+  secret: test-only-jwt-secret-not-for-any-real-use-0123456789-api-gateway

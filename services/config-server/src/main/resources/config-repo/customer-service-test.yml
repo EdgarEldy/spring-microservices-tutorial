@@ -1,0 +1,9 @@
+# Profil test : pas de spring.datasource ici. Les tests d'intégration futurs (à partir
+# de feature/customer-service, quand des entités JPA existeront) utiliseront Testcontainers
+# avec des credentials générés dynamiquement via @DynamicPropertySource ou equivalent,
+# pas cette config centralisée.
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health

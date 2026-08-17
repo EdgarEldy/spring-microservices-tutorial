@@ -19,13 +19,211 @@
 
     <dependencies>
         <dependency>
+            <groupId>com.edgareldy</groupId>
+            <artifactId>common-lib</artifactId>
+            <version>${revision}</version>
+        </dependency>
+
+        <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
 
         <dependency>
             <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-actuator</artifactId>
+        </dependency>
+
+        <!-- Distributed tracing (see feature/observability): micrometer-tracing-bridge-brave
+             generates/propagates trace and span IDs (Micrometer Tracing instruments Spring MVC,
+             OpenFeign, and spring-kafka automatically) and surfaces them in the MDC, which is
+             where common-lib's LoggingAspect already reads its context from, no code change
+             needed there; zipkin-reporter-brave reports finished spans to Zipkin
+             (management.zipkin.tracing.endpoint, see config-repo). Both versions come from
+             spring-boot-dependencies' own micrometer-tracing-bom/zipkin-reporter-bom imports, no
+             explicit <version> needed here. -->
+        <dependency>
+            <groupId>io.micrometer</groupId>
+            <artifactId>micrometer-tracing-bridge-brave</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>io.zipkin.reporter2</groupId>
+            <artifactId>zipkin-reporter-brave</artifactId>
+        </dependency>
+
+        <!-- Same class of Spring Boot 4.x module-splitting gotcha as spring-boot-kafka
+             elsewhere in this project: the two dependencies above alone are NOT enough.
+             Spring Boot 4.1 moved BraveAutoConfiguration/ZipkinWithBraveTracingAutoConfiguration
+             (the glue that actually creates the Tracer bean, wires the MDC
+             traceId/spanId scope decorator, and configures the Zipkin reporter) out of
+             spring-boot-actuator-autoconfigure into this dedicated module. Without it,
+             every tracing dependency above is present on the classpath and silently does
+             nothing: no Tracer bean, no MDC correlation, no spans ever reported to
+             Zipkin, with no startup error or warning anywhere to say so. Verified live
+             (not merely by reading the release notes): with only the two dependencies
+             above, /actuator/conditions showed zero tracing-related autoconfiguration
+             classes evaluated at all, and LoggingAspect's log lines carried no
+             traceId/spanId; adding this dependency fixed both. -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-micrometer-tracing-brave</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-starter-config</artifactId>
+        </dependency>
+
+        <!-- Without this, eureka.client.service-url.defaultZone (already set in
+             config-repo/auth-service.yml) is inert: the service pulls its config from
+             config-server but never actually registers with discovery-server. -->
+        <dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-starter-netflix-eureka-client</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-jpa</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.postgresql</groupId>
+            <artifactId>postgresql</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-core</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-database-postgresql</artifactId>
+        </dependency>
+
+        <!-- Spring Boot 4.x split Flyway's autoconfiguration glue (the bean that
+             actually triggers the migration on startup) out of the old monolithic
+             spring-boot-autoconfigure into this dedicated module. flyway-core/
+             flyway-database-postgresql alone (above) no longer run V1__init_schema.sql
+             at all without it: this must be a real (compile-scope) dependency, not
+             test-only, or the deployed service silently never migrates its schema. -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-flyway</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-security</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-validation</artifactId>
+        </dependency>
+
+        <!-- Versions for jjwt/mapstruct/springdoc are pinned once in the root pom.xml's
+             dependencyManagement, not here. -->
+        <dependency>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-api</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-impl</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-jackson</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.kafka</groupId>
+            <artifactId>spring-kafka</artifactId>
+        </dependency>
+
+        <!-- Spring Boot 4.x split Kafka's autoconfiguration glue (KafkaAutoConfiguration,
+             the KafkaTemplate bean wiring driven by spring.kafka.* properties) out of the
+             old monolithic spring-boot-autoconfigure into this dedicated module, same
+             pattern as spring-boot-flyway below. spring-kafka alone (above) is not enough:
+             without this, no KafkaTemplate bean is ever created and AuthEventProducer fails
+             to start up at all (lesson from feature/order-service, caught there by a real
+             @SpringBootTest that this service never had one of). -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-kafka</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springdoc</groupId>
+            <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <scope>provided</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.mapstruct</groupId>
+            <artifactId>mapstruct</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- Spring Boot 4.x split @DataJpaTest and its slice autoconfiguration out of
+             spring-boot-test-autoconfigure into their own per-feature test starter, unlike
+             3.x where spring-boot-starter-test alone was enough. -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-jpa-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- Same 4.x split as spring-boot-starter-data-jpa-test above, but for the MVC test
+             slice: @WebMvcTest/@AutoConfigureMockMvc moved out of spring-boot-test-autoconfigure
+             (which shrank to a small shared core in 4.x) into this dedicated starter. Without
+             it, spring-boot-starter-test alone no longer resolves those two annotations. -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-webmvc-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.security</groupId>
+            <artifactId>spring-security-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-testcontainers</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- Testcontainers 2.x renamed the module from "postgresql" to "testcontainers-postgresql". -->
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>testcontainers-postgresql</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.kafka</groupId>
+            <artifactId>spring-kafka-test</artifactId>
             <scope>test</scope>
         </dependency>
     </dependencies>
@@ -35,6 +233,41 @@
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
+                <configuration>
+                    <excludes>
+                        <exclude>
+                            <groupId>org.projectlombok</groupId>
+                            <artifactId>lombok</artifactId>
+                        </exclude>
+                    </excludes>
+                </configuration>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <!-- Order matters: lombok-mapstruct-binding must be resolved before
+                         mapstruct-processor so MapStruct sees Lombok-generated
+                         getters/setters/builders when generating mapper implementations. -->
+                    <annotationProcessorPaths>
+                        <path>
+                            <groupId>org.projectlombok</groupId>
+                            <artifactId>lombok</artifactId>
+                            <version>${lombok.version}</version>
+                        </path>
+                        <path>
+                            <groupId>org.projectlombok</groupId>
+                            <artifactId>lombok-mapstruct-binding</artifactId>
+                            <version>${lombok-mapstruct-binding.version}</version>
+                        </path>
+                        <path>
+                            <groupId>org.mapstruct</groupId>
+                            <artifactId>mapstruct-processor</artifactId>
+                            <version>${mapstruct.version}</version>
+                        </path>
+                    </annotationProcessorPaths>
+                </configuration>
             </plugin>
         </plugins>
     </build>

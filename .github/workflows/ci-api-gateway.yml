@@ -1,0 +1,37 @@
+name: CI - api-gateway
+
+on:
+  push:
+    branches: [develop, master]
+    paths:
+      - 'services/api-gateway/**'
+      - 'common-lib/**'
+      - 'pom.xml'
+      - '.github/workflows/ci-api-gateway.yml'
+  pull_request:
+    paths:
+      - 'services/api-gateway/**'
+      - 'common-lib/**'
+      - 'pom.xml'
+      - '.github/workflows/ci-api-gateway.yml'
+
+jobs:
+  common-lib:
+    uses: ./.github/workflows/ci-common-lib.yml
+
+  build:
+    needs: common-lib
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+
+      - name: Build and test api-gateway
+        run: ./mvnw -B -pl services/api-gateway -am test

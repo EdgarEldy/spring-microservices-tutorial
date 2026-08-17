@@ -1,0 +1,23 @@
+# Profil prod : api-gateway n'a pas de base de données (voir README, data model), donc
+# pas de bloc spring.datasource ici.
+spring:
+  data:
+    redis:
+      host: ${REDIS_HOST:redis}
+      port: ${REDIS_PORT:6379}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+
+logging:
+  level:
+    root: INFO
+
+# Deliberately no default here: a prod deployment without JWT_SECRET set must fail
+# at startup (see JwtService, @Value("${jwt.secret}") with no default) rather than
+# start with a guessable secret. Must be the exact same value as auth-service's.
+jwt:
+  secret: ${JWT_SECRET}

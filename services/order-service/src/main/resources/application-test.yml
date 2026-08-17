@@ -1,0 +1,44 @@
+# Test profile: disables remote config import so order-service's tests
+# (unit/integration) never depend on a config-server actually running. Tests
+# supply their own config (via @TestPropertySource, this file itself, or
+# Testcontainers later).
+spring:
+  config:
+    import: ""
+  # Same reasoning as jwt.secret below: config-repo/order-service.yml's real
+  # spring.cloud.openfeign.circuitbreaker.*/resilience4j.circuitbreaker.* block never
+  # reaches tests either (config import is blank above), so it is duplicated here too.
+  cloud:
+    openfeign:
+      circuitbreaker:
+        enabled: true
+        group:
+          enabled: true
+
+# jwt.secret is duplicated here on purpose, same pattern as catalog-service/
+# customer-service: config-repo's order-service-test.yml also defines it, but
+# spring.config.import is blank above, so that remote file is never fetched by
+# anything running with the "test" profile - this local file is the one that
+# actually reaches the tests. JwtService requires this property with no default
+# (@Value("${jwt.secret}")), so without this block every test that loads a Spring
+# context touching JwtService would fail at context startup.
+jwt:
+  secret: test-only-jwt-secret-not-for-any-real-use-0123456789-order-service
+
+# configs.default, not instances.catalog-service/instances.customer-service: see
+# config-repo/order-service.yml's equivalent block for why (Spring Cloud OpenFeign's
+# default per-method circuit breaker naming means an instances.<feign-client-name> entry
+# silently never matches). Same values as production otherwise: sliding-window-size/
+# minimum-number-of-calls of 5 are already small enough to trip deterministically within
+# a handful of WireMock-stubbed failures in a test, no test-only tuning needed.
+resilience4j:
+  circuitbreaker:
+    configs:
+      default:
+        sliding-window-size: 5
+        minimum-number-of-calls: 5
+        failure-rate-threshold: 50
+        wait-duration-in-open-state: 10s
+        permitted-number-of-calls-in-half-open-state: 3
+        ignore-exceptions:
+          - feign.FeignException$NotFound

@@ -1,0 +1,395 @@
+# Started in feature/infrastructure (postgres, discovery-server, config-server)
+# and grown incrementally, one business service per feature branch, per the
+# README's "Order of work".
+#
+# Note on networking: config-repo/*.yml (shared, committed configuration also
+# used to run services locally straight from the IDE or `mvn spring-boot:run`)
+# resolves Eureka's defaultZone through EUREKA_URI (${EUREKA_URI:http://
+# localhost:8761/eureka/}, see e.g. config-repo/auth-service.yml), the same
+# override-via-env-var-with-a-localhost-default pattern CONFIG_SERVER_URL
+# already used before this branch. Previously hardcoded to localhost with no
+# override at all; fixed in feature/api-gateway once this compose file's own
+# api-gateway service made every business service actually needing to
+# register with discovery-server's *container* (not itself) a genuine
+# functional requirement, not just a known gap.
+#
+# Note on published ports: per the README's feature/api-gateway task list,
+# api-gateway is "the only service with a port published to the host" among
+# the business/infrastructure Spring services (discovery-server, config-server,
+# auth-service, catalog-service, customer-service, order-service,
+# notification-service, api-gateway) - every other request into this system
+# goes through it. postgres/kafka/redis/zipkin below still publish theirs:
+# they are not part of that enumerated services list, and staying reachable
+# directly (psql, a Kafka client, redis-cli, the Zipkin UI) is a deliberate
+# local-development convenience, not a bypass of the "single entry point"
+# rule. discovery-server's
+# Eureka dashboard is consequently only reachable via `docker compose exec`/
+# `docker port`/a temporary manual port override while debugging, never a
+# permanent published port in this file.
+
+networks:
+  infra:
+    name: spring-microservices-tutorial-infra
+    driver: bridge
+
+volumes:
+  postgres-data:
+
+services:
+  postgres:
+    image: postgres:16
+    container_name: postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      # Read-only mount: scripts here run once, only against an empty data
+      # directory, to create auth_db/catalog_db/customer_db/order_db.
+      - ./docker/postgres-init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - infra
+
+  discovery-server:
+    build:
+      context: .
+      dockerfile: services/discovery-server/Dockerfile
+    container_name: discovery-server
+    environment:
+      # No config-server import for this service (see application.yml's own
+      # comment): ZIPKIN_URI is set directly here rather than via config-repo.
+      ZIPKIN_URI: http://zipkin:9411/api/v2/spans
+    depends_on:
+      zipkin:
+        # Soft dependency: the Zipkin reporter is fire-and-forget, a missing/
+        # not-yet-ready Zipkin only means spans are silently dropped, never a
+        # startup failure. service_started is enough, same reasoning as
+        # kafka's condition elsewhere in this file.
+        condition: service_started
+    networks:
+      - infra
+    # No datasource, no dependency on postgres. No published port (see the
+    # header comment's "Note on published ports").
+
+  config-server:
+    build:
+      context: .
+      dockerfile: services/config-server/Dockerfile
+    container_name: config-server
+    environment:
+      # Same rationale as discovery-server's ZIPKIN_URI above.
+      ZIPKIN_URI: http://zipkin:9411/api/v2/spans
+    depends_on:
+      # Ordering only, not a hard runtime requirement: config-server serves
+      # config-repo/*.yml from its own classpath and never calls Eureka to
+      # do so. Starting discovery-server first just avoids every business
+      # service (added in later branches) racing config-server for a
+      # registry that isn't there yet on first `docker compose up`.
+      - discovery-server
+      - zipkin
+    networks:
+      - infra
+
+  auth-service:
+    build:
+      context: .
+      dockerfile: services/auth-service/Dockerfile
+    container_name: auth-service
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      # CONFIG_SERVER_URL is an env-var override built into auth-service's local
+      # application.yml (spring.config.import:
+      # "optional:configserver:${CONFIG_SERVER_URL:...}"), so overriding it here
+      # to the Docker Compose service name does not require touching any
+      # committed config-repo YAML. Without this, auth-service would fail to
+      # fetch auth-service-prod.yml at all (the import is optional, so it would
+      # start with no datasource/JWT config instead of failing loudly), since
+      # "localhost:8888" inside this container is auth-service itself, not
+      # config-server.
+      CONFIG_SERVER_URL: http://config-server:8888
+      # See the header comment's "Note on networking": EUREKA_URI is resolved
+      # inside config-repo/auth-service.yml itself (${EUREKA_URI:http://
+      # localhost:8761/eureka/}), fetched via CONFIG_SERVER_URL above, so this
+      # override reaches auth-service through config-server rather than needing
+      # a local application.yml placeholder like CONFIG_SERVER_URL does.
+      EUREKA_URI: http://discovery-server:8761/eureka/
+      # Same rationale as EUREKA_URI above: resolved inside
+      # config-repo/auth-service.yml itself, fetched via CONFIG_SERVER_URL.
+      ZIPKIN_URI: http://zipkin:9411/api/v2/spans
+      # postgres/postgres are the POSTGRES_USER/POSTGRES_PASSWORD of the
+      # `postgres` service above; `postgres` (not localhost) is its Docker
+      # Compose service name, resolvable on the shared `infra` network.
+      DB_URL: jdbc:postgresql://postgres:5432/auth_db
+      DB_USERNAME: postgres
+      DB_PASSWORD: postgres
+      # Demo-only value so `docker compose up` works out of the box without
+      # requiring a secret to be exported first; never a real production
+      # secret. A real deployment must override this (see
+      # config-repo/auth-service-prod.yml, ${JWT_SECRET} has no default).
+      JWT_SECRET: demo-only-jwt-secret-do-not-use-in-real-production-0123456789-auth-service
+    depends_on:
+      postgres:
+        # Hard requirement, unlike discovery-server/config-server below:
+        # auth-service's DataSource bean fails fast at startup if it cannot
+        # reach Postgres at all, so it must wait for the healthcheck, not
+        # just for the container process to exist.
+        condition: service_healthy
+      discovery-server:
+        condition: service_started
+      config-server:
+        condition: service_started
+      kafka:
+        condition: service_started
+      zipkin:
+        # Soft dependency, same reasoning as discovery-server's zipkin
+        # dependency above: a missing/not-yet-ready Zipkin only drops spans
+        # silently, never blocks startup.
+        condition: service_started
+    networks:
+      - infra
+    # Kafka's own service block is defined further down (added in
+    # feature/notification-service). spring-kafka's KafkaTemplate/KafkaProducer
+    # connect lazily either way: nothing at application startup talks to a
+    # broker, AuthEventProducer only touches Kafka when
+    # publishUserRegistered/publishPasswordResetRequested is actually called
+    # (register/forgot-password requests). Risk to be aware of: KafkaTemplate.send
+    # returns a future that AuthEventProducer does not currently wait on or
+    # attach a callback to, so a send failure (e.g. a transient broker restart)
+    # fails asynchronously (visible only in producer logs) rather than
+    # surfacing as an HTTP error to the caller.
+
+  catalog-service:
+    build:
+      context: .
+      dockerfile: services/catalog-service/Dockerfile
+    container_name: catalog-service
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      # Same rationale as auth-service above: overriding it here to the Docker
+      # Compose service name does not require touching any committed
+      # config-repo YAML, since catalog-service's local application.yml already
+      # builds the import URL from this env var.
+      CONFIG_SERVER_URL: http://config-server:8888
+      # Same rationale as auth-service's EUREKA_URI above.
+      EUREKA_URI: http://discovery-server:8761/eureka/
+      # Same rationale as auth-service's ZIPKIN_URI above.
+      ZIPKIN_URI: http://zipkin:9411/api/v2/spans
+      # postgres/postgres are the POSTGRES_USER/POSTGRES_PASSWORD of the
+      # `postgres` service above; `postgres` (not localhost) is its Docker
+      # Compose service name, resolvable on the shared `infra` network.
+      DB_URL: jdbc:postgresql://postgres:5432/catalog_db
+      DB_USERNAME: postgres
+      DB_PASSWORD: postgres
+      # MUST be the exact same value as auth-service's JWT_SECRET above:
+      # catalog-service only parses/verifies JWTs, it never issues one, and
+      # verification only succeeds if both services sign/verify with the same
+      # HMAC secret. Demo-only value, never a real production secret (see
+      # config-repo/catalog-service-prod.yml, ${JWT_SECRET} has no default).
+      JWT_SECRET: demo-only-jwt-secret-do-not-use-in-real-production-0123456789-auth-service
+    depends_on:
+      postgres:
+        # Hard requirement, unlike discovery-server/config-server below:
+        # catalog-service's DataSource bean fails fast at startup if it cannot
+        # reach Postgres at all, so it must wait for the healthcheck, not
+        # just for the container process to exist.
+        condition: service_healthy
+      discovery-server:
+        condition: service_started
+      config-server:
+        condition: service_started
+      zipkin:
+        condition: service_started
+    networks:
+      - infra
+
+  customer-service:
+    build:
+      context: .
+      dockerfile: services/customer-service/Dockerfile
+    container_name: customer-service
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      CONFIG_SERVER_URL: http://config-server:8888
+      # Same rationale as auth-service's EUREKA_URI above.
+      EUREKA_URI: http://discovery-server:8761/eureka/
+      # Same rationale as auth-service's ZIPKIN_URI above.
+      ZIPKIN_URI: http://zipkin:9411/api/v2/spans
+      DB_URL: jdbc:postgresql://postgres:5432/customer_db
+      DB_USERNAME: postgres
+      DB_PASSWORD: postgres
+      # MUST be the exact same value as auth-service's JWT_SECRET above: same
+      # rationale as catalog-service's own JWT_SECRET line.
+      JWT_SECRET: demo-only-jwt-secret-do-not-use-in-real-production-0123456789-auth-service
+    depends_on:
+      postgres:
+        condition: service_healthy
+      discovery-server:
+        condition: service_started
+      config-server:
+        condition: service_started
+      zipkin:
+        condition: service_started
+    networks:
+      - infra
+
+  order-service:
+    build:
+      context: .
+      dockerfile: services/order-service/Dockerfile
+    container_name: order-service
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      CONFIG_SERVER_URL: http://config-server:8888
+      # Same rationale as auth-service's EUREKA_URI above.
+      EUREKA_URI: http://discovery-server:8761/eureka/
+      # Same rationale as auth-service's ZIPKIN_URI above.
+      ZIPKIN_URI: http://zipkin:9411/api/v2/spans
+      DB_URL: jdbc:postgresql://postgres:5432/order_db
+      DB_USERNAME: postgres
+      DB_PASSWORD: postgres
+      # MUST be the exact same value as auth-service's JWT_SECRET above: order-service
+      # both parses incoming JWTs itself and forwards them on to CustomerClient (see
+      # FeignConfig), so verification only succeeds if every service signs/verifies
+      # with the same HMAC secret.
+      JWT_SECRET: demo-only-jwt-secret-do-not-use-in-real-production-0123456789-auth-service
+    depends_on:
+      postgres:
+        condition: service_healthy
+      discovery-server:
+        condition: service_started
+      config-server:
+        condition: service_started
+      kafka:
+        condition: service_started
+      zipkin:
+        condition: service_started
+    networks:
+      - infra
+
+  # KRaft mode, no Zookeeper: a single node acts as both broker and controller,
+  # sufficient for this tutorial's single-broker, single-partition-per-topic setup.
+  # CLUSTER_ID is a fixed, well-known example value (the same one used in Apache
+  # Kafka's own Docker quickstart docs): it only identifies this cluster's KRaft
+  # metadata log to itself, not a secret, safe to hardcode for a dev/demo compose
+  # file like this one.
+  kafka:
+    image: apache/kafka:4.0.0
+    container_name: kafka
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093
+      # "kafka" (not localhost) is this container's own Docker Compose service name,
+      # resolvable by every other service on the shared `infra` network, same
+      # rationale as postgres/discovery-server/config-server above.
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      CLUSTER_ID: MkU3OEVBNTcwNTJENDM2Qk
+    networks:
+      - infra
+
+  notification-service:
+    build:
+      context: .
+      dockerfile: services/notification-service/Dockerfile
+    container_name: notification-service
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      CONFIG_SERVER_URL: http://config-server:8888
+      # Same rationale as auth-service's EUREKA_URI above.
+      EUREKA_URI: http://discovery-server:8761/eureka/
+      # Same rationale as auth-service's ZIPKIN_URI above.
+      ZIPKIN_URI: http://zipkin:9411/api/v2/spans
+      # No DB_URL/DB_USERNAME/DB_PASSWORD: this is the project's one database-less
+      # service (see README's "Data model"), nothing here ever opens a DataSource.
+    depends_on:
+      discovery-server:
+        condition: service_started
+      config-server:
+        condition: service_started
+      kafka:
+        # Unlike auth-service/order-service (where a broker outage only degrades
+        # publishing), this service's entire purpose is consuming Kafka topics:
+        # waiting for kafka to have at least started (not necessarily fully ready,
+        # same service_started condition used elsewhere in this file) still makes
+        # more sense here than not waiting at all.
+        condition: service_started
+      zipkin:
+        condition: service_started
+    networks:
+      - infra
+
+  # Backs api-gateway's RequestRateLimiter filter (see RateLimiterConfig,
+  # api-gateway.yml's routes). No password/persistence configured: this is
+  # rate-limiter token-bucket state only, never a source of truth for anything,
+  # safe to lose on restart.
+  redis:
+    image: redis:7-alpine
+    container_name: redis
+    ports:
+      - "6379:6379"
+    networks:
+      - infra
+
+  api-gateway:
+    build:
+      context: .
+      dockerfile: services/api-gateway/Dockerfile
+    container_name: api-gateway
+    # The only business/infrastructure service with a published port in this
+    # file (see the header comment's "Note on published ports"): every request
+    # into the system from outside this compose network goes through here.
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      CONFIG_SERVER_URL: http://config-server:8888
+      # Same rationale as auth-service's EUREKA_URI above; load-bearing here in
+      # particular, since every lb://<service-name> route depends on it.
+      EUREKA_URI: http://discovery-server:8761/eureka/
+      # Same rationale as auth-service's ZIPKIN_URI above.
+      ZIPKIN_URI: http://zipkin:9411/api/v2/spans
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      # MUST be the exact same value as auth-service's JWT_SECRET above:
+      # JwtValidationGatewayFilter verifies the same HMAC-signed tokens every
+      # other business service does.
+      JWT_SECRET: demo-only-jwt-secret-do-not-use-in-real-production-0123456789-auth-service
+    depends_on:
+      discovery-server:
+        condition: service_started
+      config-server:
+        condition: service_started
+      redis:
+        condition: service_started
+      zipkin:
+        condition: service_started
+    networks:
+      - infra
+
+  # Distributed tracing UI/collector (see feature/observability): every service
+  # reports finished spans here (management.zipkin.tracing.endpoint,
+  # ZIPKIN_URI above), 100% sampled for this tutorial. Port published to the
+  # host for local inspection of the UI, same "convenience infra, not part of
+  # the API-gateway-only rule" treatment as postgres/kafka/redis above (see
+  # the header comment's "Note on published ports").
+  zipkin:
+    image: openzipkin/zipkin:latest
+    container_name: zipkin
+    ports:
+      - "9411:9411"
+    networks:
+      - infra

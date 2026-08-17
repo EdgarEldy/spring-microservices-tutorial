@@ -1,0 +1,40 @@
+server:
+  port: 8080
+
+# See auth-service.yml's equivalent block for the EUREKA_URI rationale: this
+# service in particular needs a real, reachable defaultZone to resolve any
+# lb://<service-name> route at all, so this was the branch this got fixed in.
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_URI:http://localhost:8761/eureka/}
+
+management:
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      group:
+        readiness:
+          include: readinessState
+        liveness:
+          include: livenessState
+  # See auth-service.yml's equivalent block for the sampling/ZIPKIN_URI rationale.
+  tracing:
+    sampling:
+      probability: 1.0
+  zipkin:
+    tracing:
+      endpoint: ${ZIPKIN_URI:http://localhost:9411/api/v2/spans}
+
+# No spring.cloud.gateway.server.webflux.routes here: routes are defined in Java
+# (RouteConfig, in this module's own config package) rather than YAML, so that
+# RedisRateLimiter's per-route Config can be registered programmatically (see
+# RouteConfig's own Javadoc for why the YAML args-based approach cannot do
+# this on its own). gateway.rate-limiter.login.replenish-rate/burst-capacity
+# below are still ordinary properties, read by RouteConfig via @Value.
+gateway:
+  rate-limiter:
+    login:
+      replenish-rate: 5
+      burst-capacity: 10

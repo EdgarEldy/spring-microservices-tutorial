@@ -19,13 +19,152 @@
 
     <dependencies>
         <dependency>
+            <groupId>com.edgareldy</groupId>
+            <artifactId>common-lib</artifactId>
+            <version>${revision}</version>
+        </dependency>
+
+        <!-- Reactive (WebFlux) Spring Cloud Gateway, never spring-boot-starter-web:
+             the servlet (Tomcat/MVC) and reactive (Netty/WebFlux) stacks cannot
+             coexist on the classpath, Spring Boot picks exactly one
+             WebApplicationType at startup. Spring Cloud Gateway 4.2+ (this
+             project's Spring Cloud 2025.1.2 "Oakwood" pulls in Gateway 5.0.2) split
+             the single old spring-cloud-starter-gateway artifact into this
+             -server-webflux variant and a -server-webmvc one; every route in this
+             project uses the lb://<service-name> URI scheme (see README's "Load
+             balancing"), which needs the reactive LoadBalancer client this starter
+             brings in transitively, so webflux is the correct half. This also
+             transitively brings in spring-boot-starter-webflux itself: no need to
+             also declare it explicitly. -->
+        <dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-starter-gateway-server-webflux</artifactId>
+        </dependency>
+
+        <dependency>
             <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-web</artifactId>
+            <artifactId>spring-boot-starter-actuator</artifactId>
+        </dependency>
+
+        <!-- Same rationale as auth-service's pom.xml (see feature/observability): no explicit
+             <version> needed, both come from spring-boot-dependencies' own BOM imports. -->
+        <dependency>
+            <groupId>io.micrometer</groupId>
+            <artifactId>micrometer-tracing-bridge-brave</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>io.zipkin.reporter2</groupId>
+            <artifactId>zipkin-reporter-brave</artifactId>
+        </dependency>
+
+        <!-- Same rationale as auth-service's pom.xml (see feature/observability):
+             without this, BraveAutoConfiguration/ZipkinWithBraveTracingAutoConfiguration
+             never run and the two dependencies above silently do nothing. -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-micrometer-tracing-brave</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-starter-config</artifactId>
+        </dependency>
+
+        <!-- Without this, eureka.client.service-url.defaultZone is inert: the
+             gateway pulls its config from config-server but never actually
+             registers with discovery-server, and lb://<service-name> routes would
+             have nothing to resolve against. -->
+        <dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-starter-netflix-eureka-client</artifactId>
+        </dependency>
+
+        <!-- Backs RateLimiterConfig's Redis-backed RequestRateLimiter on
+             /api/v1/auth/login. The reactive variant, matching this module's
+             WebFlux stack (spring-boot-starter-data-redis, the blocking one every
+             other service in this project would use, is the wrong half here). -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-redis-reactive</artifactId>
+        </dependency>
+
+        <!-- Versions for jjwt/mapstruct/springdoc are pinned once in the root pom.xml's
+             dependencyManagement, not here. api-gateway only ever parses a JWT issued
+             by auth-service, it never signs one, but jjwt-api is still needed at
+             compile time to call Jwts.parser(). -->
+        <dependency>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-api</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-impl</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-jackson</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <scope>provided</scope>
         </dependency>
 
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- Spring Boot 4.x split @WebFluxTest's slice autoconfiguration out of
+             spring-boot-test-autoconfigure into its own per-feature test starter,
+             the WebFlux counterpart to spring-boot-starter-webmvc-test used by
+             every other (servlet-based) service in this project. -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-webflux-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- @AutoConfigureWebTestClient/WebTestClient injection for a full
+             @SpringBootTest(webEnvironment = RANDOM_PORT), same module-splitting
+             pattern as spring-boot-kafka elsewhere in this project:
+             spring-boot-starter-webflux-test alone does not pull this in, it only
+             covers the @WebFluxTest slice. -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-webtestclient</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-testcontainers</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- No dedicated com.redis:testcontainers-redis module: it isn't covered by
+             spring-boot-starter-parent's dependencyManagement, so pinning it would mean
+             adding a version property to the root pom for a single test dependency.
+             Plain testcontainers' GenericContainer("redis:7-alpine") gives the same
+             real-Redis integration test without that. -->
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>testcontainers</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- Stubs the downstream service a route proxies to, same rationale/artifact as
+             order-service's ProductClient/CustomerClient WireMock tests. -->
+        <dependency>
+            <groupId>org.wiremock</groupId>
+            <artifactId>wiremock-standalone</artifactId>
             <scope>test</scope>
         </dependency>
     </dependencies>
@@ -35,6 +174,28 @@
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
+                <configuration>
+                    <excludes>
+                        <exclude>
+                            <groupId>org.projectlombok</groupId>
+                            <artifactId>lombok</artifactId>
+                        </exclude>
+                    </excludes>
+                </configuration>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <annotationProcessorPaths>
+                        <path>
+                            <groupId>org.projectlombok</groupId>
+                            <artifactId>lombok</artifactId>
+                            <version>${lombok.version}</version>
+                        </path>
+                    </annotationProcessorPaths>
+                </configuration>
             </plugin>
         </plugins>
     </build>

@@ -524,12 +524,20 @@ spring-microservices-tutorial/
     └── api-gateway/
         └── src/main/java/com/edgareldy/springmicroservicestutorial/apigateway/
             ├── ApiGatewayApplication.java
-            ├── config/
-            │   ├── RouteConfig.java                    (route definitions, lb:// scheme)
-            │   ├── SecurityConfig.java                 (validates JWTs issued by auth-service)
-            │   └── RateLimiterConfig.java               (Redis-backed RequestRateLimiter on /api/v1/auth/login)
-            └── filter/
-                └── JwtValidationGatewayFilter.java
+            ├── security/
+            │   └── JwtService.java                      (verifies signature/expiration of JWTs issued by auth-service)
+            ├── filter/
+            │   └── JwtValidationGatewayFilter.java       (GlobalFilter, rejects a missing/invalid token on every
+            │                                              route except /api/v1/auth/register|login|activate-account;
+            │                                              no separate SecurityConfig - this GlobalFilter is the
+            │                                              gateway's entire JWT enforcement, no Spring Security
+            │                                              dependency needed for a routing layer that never builds
+            │                                              its own Authentication/principal)
+            └── config/
+                ├── RouteConfig.java                      (route definitions, lb:// scheme, one RouteLocator bean)
+                └── RateLimiterConfig.java                 (KeyResolver bean, per-client-IP, backing the
+                                                             Redis-backed RequestRateLimiter RouteConfig attaches to
+                                                             POST /api/v1/auth/login)
 ```
 
 ## Standard response format
@@ -561,13 +569,13 @@ First branch, since every service below depends on it.
 
 ### Tasks
 
-- [ ] `ApiResponse<T>`, `PageResponse<T>`
-- [ ] `ResourceNotFoundException`, `BusinessRuleException`, `BaseExceptionHandler` (each service's own `@RestControllerAdvice` extends it, adding service-specific cases)
-- [ ] `LoggingAspect` (`@Around` on `com.edgareldy.springmicroservicestutorial.*.service..*`), logging method entry/exit and relying on Micrometer Tracing's MDC context (added properly once `feature/observability` is merged - until then, this aspect logs without a trace id, which is fine, since `common-lib` doesn't take on tracing as its own responsibility)
-- [ ] Published as a regular Maven dependency (`<dependency>`) in every service's `pom.xml`, never copy-pasted
-- [ ] Unit tests for `BaseExceptionHandler`'s mapping of each exception type
-- [ ] `.github/workflows/ci-common-lib.yml`, and every other service's CI job depends on this one succeeding first (since they all compile against it)
-- [ ] `.github/PULL_REQUEST_TEMPLATE.md`: repo-wide, used by every `feature/*` branch's PR from here on - sections for branch name, task checklist (copied from the relevant README section, checked off), commit summary, test checklist, code review checklist (contract/implementation pattern, `ApiResponse<T>` on every endpoint, no business logic leaking into `common-lib`)
+- [x] `ApiResponse<T>`, `PageResponse<T>`
+- [x] `ResourceNotFoundException`, `BusinessRuleException`, `BaseExceptionHandler` (each service's own `@RestControllerAdvice` extends it, adding service-specific cases)
+- [x] `LoggingAspect` (`@Around` on `com.edgareldy.springmicroservicestutorial.*.service..*`), logging method entry/exit and relying on Micrometer Tracing's MDC context (added properly once `feature/observability` is merged - until then, this aspect logs without a trace id, which is fine, since `common-lib` doesn't take on tracing as its own responsibility)
+- [x] Published as a regular Maven dependency (`<dependency>`) in every service's `pom.xml`, never copy-pasted
+- [x] Unit tests for `BaseExceptionHandler`'s mapping of each exception type
+- [x] `.github/workflows/ci-common-lib.yml`, and every other service's CI job depends on this one succeeding first (since they all compile against it)
+- [x] `.github/PULL_REQUEST_TEMPLATE.md`: repo-wide, used by every `feature/*` branch's PR from here on - sections for branch name, task checklist (copied from the relevant README section, checked off), commit summary, test checklist, code review checklist (contract/implementation pattern, `ApiResponse<T>` on every endpoint, no business logic leaking into `common-lib`)
 
 ## feature/infrastructure
 
@@ -575,13 +583,13 @@ First branch, since every service below depends on it.
 
 ### Tasks
 
-- [ ] `discovery-server`: `spring-cloud-starter-netflix-eureka-server`, `@EnableEurekaServer`, `application.yml` with `eureka.client.register-with-eureka=false`/`fetch-registry=false`
-- [ ] `config-server`: `spring-cloud-config-server`, `@EnableConfigServer`, native profile pointing at `src/main/resources/config-repo/`
-- [ ] One `<service-name>.yml` per business service in `config-repo/`, each declaring that service's datasource, server port, Eureka client settings, and (from `feature/observability` onward) tracing/Zipkin settings
-- [ ] Actuator health groups defined per service config: `management.endpoint.health.group.readiness.include` / `.liveness.include`, so each service exposes `/actuator/health/readiness` and `/actuator/health/liveness` separately from the general `/actuator/health`
-- [ ] `docker/postgres-init/01-create-databases.sql`: creates `auth_db`, `catalog_db`, `customer_db`, `order_db`
-- [ ] `docker-compose.yml`: `postgres`, `discovery-server`, `config-server` (the rest is added incrementally)
-- [ ] `.github/workflows/ci-discovery-server.yml`, `ci-config-server.yml`
+- [x] `discovery-server`: `spring-cloud-starter-netflix-eureka-server`, `@EnableEurekaServer`, `application.yml` with `eureka.client.register-with-eureka=false`/`fetch-registry=false`
+- [x] `config-server`: `spring-cloud-config-server`, `@EnableConfigServer`, native profile pointing at `src/main/resources/config-repo/`
+- [x] One `<service-name>.yml` per business service in `config-repo/`, each declaring that service's datasource, server port, Eureka client settings, and (from `feature/observability` onward) tracing/Zipkin settings
+- [x] Actuator health groups defined per service config: `management.endpoint.health.group.readiness.include` / `.liveness.include`, so each service exposes `/actuator/health/readiness` and `/actuator/health/liveness` separately from the general `/actuator/health`
+- [x] `docker/postgres-init/01-create-databases.sql`: creates `auth_db`, `catalog_db`, `customer_db`, `order_db`
+- [x] `docker-compose.yml`: `postgres`, `discovery-server`, `config-server` (the rest is added incrementally)
+- [x] `.github/workflows/ci-discovery-server.yml`, `ci-config-server.yml`
 
 ## feature/auth-service
 
@@ -601,14 +609,14 @@ Same domain as `spring-security-tutorial`, packaged as one microservice among se
 
 ### Tasks
 
-- [ ] Reuse the entity/repository/service/controller shape of `spring-security-tutorial`
-- [ ] **No `EmailService` in this service.** Where `spring-security-tutorial` called an `EmailService` directly to send the activation/reset e-mail, this service instead publishes an event and lets `notification-service` handle delivery - the same "one service owns everything that leaves the system" rule already applied to `order-service`
-- [ ] `AuthEventProducer`: publishes `UserRegisteredEvent` (userId, email, activation token) right after registration commits, and `PasswordResetRequestedEvent` (userId, email, reset token) right after a reset is requested - both published **after** the local transaction commits, same rule as `OrderCreatedEvent`
-- [ ] Depends on `common-lib` for `ApiResponse<T>` and base exceptions
-- [ ] Registers with `discovery-server`, pulls config from `config-server`
-- [ ] `JwtService` signs tokens with a shared secret/key, documented clearly since every other business service needs to validate the same tokens independently
-- [ ] Added to `docker-compose.yml`
-- [ ] Unit, repository, and controller tests, plus a test verifying both events are only published after their respective transactions commit
+- [x] Reuse the entity/repository/service/controller shape of `spring-security-tutorial`
+- [x] **No `EmailService` in this service.** Where `spring-security-tutorial` called an `EmailService` directly to send the activation/reset e-mail, this service instead publishes an event and lets `notification-service` handle delivery - the same "one service owns everything that leaves the system" rule already applied to `order-service`
+- [x] `AuthEventProducer`: publishes `UserRegisteredEvent` (userId, email, activation token) right after registration commits, and `PasswordResetRequestedEvent` (userId, email, reset token) right after a reset is requested - both published **after** the local transaction commits, same rule as `OrderCreatedEvent`
+- [x] Depends on `common-lib` for `ApiResponse<T>` and base exceptions
+- [x] Registers with `discovery-server`, pulls config from `config-server`
+- [x] `JwtService` signs tokens with a shared secret/key, documented clearly since every other business service needs to validate the same tokens independently
+- [x] Added to `docker-compose.yml`
+- [x] Unit, repository, and controller tests, plus a test verifying both events are only published after their respective transactions commit
 
 ## feature/catalog-service
 
@@ -624,11 +632,11 @@ Same domain as `spring-security-tutorial`, packaged as one microservice among se
 
 ### Tasks
 
-- [ ] `Category`, `Product` entities, repositories, DTOs, contract/implementation services, controllers
-- [ ] Depends on `common-lib`
-- [ ] Registers with `discovery-server`, pulls config from `config-server`
-- [ ] Added to `docker-compose.yml`
-- [ ] Tests, including one verifying `GET /api/v1/catalog/products/{id}`'s exact response shape (formalized later by `feature/contract-testing`)
+- [x] `Category`, `Product` entities, repositories, DTOs, contract/implementation services, controllers
+- [x] Depends on `common-lib`
+- [x] Registers with `discovery-server`, pulls config from `config-server`
+- [x] Added to `docker-compose.yml`
+- [x] Tests, including one verifying `GET /api/v1/catalog/products/{id}`'s exact response shape (formalized later by `feature/contract-testing`)
 
 ## feature/customer-service
 
@@ -642,12 +650,12 @@ Same domain as `spring-security-tutorial`, packaged as one microservice among se
 
 ### Tasks
 
-- [ ] `Customer` entity with a plain `userId` column (no FK to `auth-service`)
-- [ ] Repository, DTOs, contract/implementation service, controller
-- [ ] Depends on `common-lib`
-- [ ] Registers with `discovery-server`, pulls config from `config-server`
-- [ ] Added to `docker-compose.yml`
-- [ ] Tests, including one confirming `customer-service` never attempts a direct database call against `auth-service`'s schema
+- [x] `Customer` entity with a plain `userId` column (no FK to `auth-service`)
+- [x] Repository, DTOs, contract/implementation service, controller
+- [x] Depends on `common-lib`
+- [x] Registers with `discovery-server`, pulls config from `config-server`
+- [x] Added to `docker-compose.yml`
+- [x] Tests, including one confirming `customer-service` never attempts a direct database call against `auth-service`'s schema
 
 ## feature/order-service
 
@@ -663,18 +671,18 @@ The only service that calls others synchronously, and the origin of the tutorial
 
 ### Tasks
 
-- [ ] `Order` entity (plain `customerId`/`productId` columns, `status` defaulting to `PENDING`), `IdempotencyKey` entity
-- [ ] `ProductClient` (`@FeignClient(name = "catalog-service")`), `CustomerClient` (`@FeignClient(name = "customer-service")`)
-- [ ] `@EnableFeignClients` on `OrderServiceApplication`
-- [ ] **Idempotent creation**: `POST /api/v1/orders` requires an `Idempotency-Key` header; before doing anything else, the service checks whether that key already exists in `idempotency_keys` - if so, it returns the previously created order instead of creating a duplicate (covers Feign's own retry-on-timeout behavior, and clients retrying after a dropped connection)
-- [ ] `OrderServiceImpl`: validates via both Feign clients, computes `total`, persists the order as `PENDING` and the idempotency key in the **same local transaction**, then - only after that transaction commits - publishes `OrderCreatedEvent` on Kafka (never publish before commit, or a consumer could react to an order that turns out not to exist)
-- [ ] `OrderConfirmedEventListener`: consumes the Saga's success event (`OrderConfirmedEvent`, published by `notification-service` once the confirmation notification is sent) and updates the order's `status` from `PENDING` to `CONFIRMED` - this is the only path that ever reaches `CONFIRMED`, an order left `PENDING` means the notification step hasn't resolved yet either way
-- [ ] `NotificationFailedEventListener`: consumes the Saga's compensating event (`NotificationFailedEvent`) from `notification-service` (see [Design patterns used](#design-patterns-used)) and updates the order's `status` to `CONFIRMATION_FAILED`
-- [ ] Explicit handling of a Feign call failing (`FeignException`) - mapped to a clear `BusinessRuleException`/404 rather than leaking a raw Feign stack trace
-- [ ] Depends on `common-lib`
-- [ ] Registers with `discovery-server`, pulls config from `config-server`
-- [ ] Added to `docker-compose.yml`
-- [ ] Tests: `WireMock` stubs for `ProductClient`/`CustomerClient` (success and failure), a repeated `POST` with the same `Idempotency-Key` returning the same order instead of creating a second one, an embedded/test Kafka broker verifying `OrderCreatedEvent` is only published after the transaction commits, and both `OrderConfirmedEventListener`/`NotificationFailedEventListener` correctly transitioning `status`
+- [x] `Order` entity (plain `customerId`/`productId` columns, `status` defaulting to `PENDING`), `IdempotencyKey` entity
+- [x] `ProductClient` (`@FeignClient(name = "catalog-service")`), `CustomerClient` (`@FeignClient(name = "customer-service")`)
+- [x] `@EnableFeignClients` on `OrderServiceApplication`
+- [x] **Idempotent creation**: `POST /api/v1/orders` requires an `Idempotency-Key` header; before doing anything else, the service checks whether that key already exists in `idempotency_keys` - if so, it returns the previously created order instead of creating a duplicate (covers Feign's own retry-on-timeout behavior, and clients retrying after a dropped connection)
+- [x] `OrderServiceImpl`: validates via both Feign clients, computes `total`, persists the order as `PENDING` and the idempotency key in the **same local transaction**, then - only after that transaction commits - publishes `OrderCreatedEvent` on Kafka (never publish before commit, or a consumer could react to an order that turns out not to exist)
+- [x] `OrderConfirmedEventListener`: consumes the Saga's success event (`OrderConfirmedEvent`, published by `notification-service` once the confirmation notification is sent) and updates the order's `status` from `PENDING` to `CONFIRMED` - this is the only path that ever reaches `CONFIRMED`, an order left `PENDING` means the notification step hasn't resolved yet either way
+- [x] `NotificationFailedEventListener`: consumes the Saga's compensating event (`NotificationFailedEvent`) from `notification-service` (see [Design patterns used](#design-patterns-used)) and updates the order's `status` to `CONFIRMATION_FAILED`
+- [x] Explicit handling of a Feign call failing (`FeignException`) - mapped to a clear `BusinessRuleException`/404 rather than leaking a raw Feign stack trace
+- [x] Depends on `common-lib`
+- [x] Registers with `discovery-server`, pulls config from `config-server`
+- [x] Added to `docker-compose.yml`
+- [x] Tests: `WireMock` stubs for `ProductClient`/`CustomerClient` (success and failure), a repeated `POST` with the same `Idempotency-Key` returning the same order instead of creating a second one, an embedded/test Kafka broker verifying `OrderCreatedEvent` is only published after the transaction commits, and both `OrderConfirmedEventListener`/`NotificationFailedEventListener` correctly transitioning `status`
 
 ## feature/notification-service
 
@@ -682,18 +690,18 @@ New service - this tutorial's only consumer-only, database-less microservice, th
 
 ### Tasks
 
-- [ ] `OrderCreatedEventConsumer` (`@KafkaListener` on the `order-events` topic): receives the event, calls `EmailNotificationService` (which, for this tutorial, logs a message instead of sending a real email)
-- [ ] `UserRegisteredEventConsumer` (`@KafkaListener` on an `auth-events` topic): receives `UserRegisteredEvent`, sends the activation e-mail (logged, same as above)
-- [ ] `PasswordResetRequestedEventConsumer`: receives `PasswordResetRequestedEvent` on the same `auth-events` topic, sends the password-reset e-mail
-- [ ] `EmailNotificationService` is shared across all three consumers - one service, one place that "sends" e-mail, regardless of which business event triggered it
-- [ ] On success, `OrderCreatedEventConsumer` publishes `OrderConfirmedEvent` (carrying the `orderId`) onto `notification-events`, via `OrderConfirmedEventProducer` - the Saga's nominal-path outcome, symmetric with the compensating event below, so `order-service` always eventually hears back one way or the other, never left silently `PENDING`
-- [ ] Deliberately simulated failure path, on the order flow only: if the "notification" fails (configurable, e.g. a specific product name triggers a simulated failure for demo purposes), the consumer publishes a `NotificationFailedEvent` back onto `notification-events`, rather than silently swallowing the error
-- [ ] `NotificationFailedEventProducer`: publishes the compensating event, carrying the `orderId` so `order-service` knows which order to mark as `CONFIRMATION_FAILED`
-- [ ] This is the tutorial's **choreographed Saga**, end to end: `order-service` commits locally → publishes `OrderCreatedEvent` → `notification-service` reacts → on success, publishes `OrderConfirmedEvent`, on failure, publishes `NotificationFailedEvent` → `order-service` reacts either way by updating its own state (`CONFIRMED` or `CONFIRMATION_FAILED`). No central orchestrator, no distributed transaction - each service only ever manages its own local transaction, coordinated entirely through events. See [Design patterns used](#design-patterns-used) for the full sequence. The account-related events (`UserRegisteredEvent`, `PasswordResetRequestedEvent`) are simpler: fire-and-forget, no compensating action, since a failed activation e-mail doesn't need to undo the account creation
-- [ ] Depends on `common-lib`
-- [ ] Registers with `discovery-server`, pulls config from `config-server`
-- [ ] Added to `docker-compose.yml`, along with a `kafka` service (KRaft mode, no Zookeeper)
-- [ ] Tests: an embedded Kafka test verifying the full order-flow choreography in both directions - publish `OrderCreatedEvent` → consumer reacts → nominal case: `OrderConfirmedEvent` published → (in `order-service`'s own test suite) `status` becomes `CONFIRMED`; failure case: simulated failure → `NotificationFailedEvent` published → `status` becomes `CONFIRMATION_FAILED` - plus a simpler test confirming `UserRegisteredEvent`/`PasswordResetRequestedEvent` trigger the expected `EmailNotificationService` call
+- [x] `OrderCreatedEventConsumer` (`@KafkaListener` on the `order-events` topic): receives the event, calls `EmailNotificationService` (which, for this tutorial, logs a message instead of sending a real email)
+- [x] `UserRegisteredEventConsumer` (`@KafkaListener` on an `auth-events` topic): receives `UserRegisteredEvent`, sends the activation e-mail (logged, same as above)
+- [x] `PasswordResetRequestedEventConsumer`: receives `PasswordResetRequestedEvent` on the same `auth-events` topic, sends the password-reset e-mail
+- [x] `EmailNotificationService` is shared across all three consumers - one service, one place that "sends" e-mail, regardless of which business event triggered it
+- [x] On success, `OrderCreatedEventConsumer` publishes `OrderConfirmedEvent` (carrying the `orderId`) onto `notification-events`, via `OrderConfirmedEventProducer` - the Saga's nominal-path outcome, symmetric with the compensating event below, so `order-service` always eventually hears back one way or the other, never left silently `PENDING`
+- [x] Deliberately simulated failure path, on the order flow only: if the "notification" fails (configurable, e.g. a specific product name triggers a simulated failure for demo purposes), the consumer publishes a `NotificationFailedEvent` back onto `notification-events`, rather than silently swallowing the error
+- [x] `NotificationFailedEventProducer`: publishes the compensating event, carrying the `orderId` so `order-service` knows which order to mark as `CONFIRMATION_FAILED`
+- [x] This is the tutorial's **choreographed Saga**, end to end: `order-service` commits locally → publishes `OrderCreatedEvent` → `notification-service` reacts → on success, publishes `OrderConfirmedEvent`, on failure, publishes `NotificationFailedEvent` → `order-service` reacts either way by updating its own state (`CONFIRMED` or `CONFIRMATION_FAILED`). No central orchestrator, no distributed transaction - each service only ever manages its own local transaction, coordinated entirely through events. See [Design patterns used](#design-patterns-used) for the full sequence. The account-related events (`UserRegisteredEvent`, `PasswordResetRequestedEvent`) are simpler: fire-and-forget, no compensating action, since a failed activation e-mail doesn't need to undo the account creation
+- [x] Depends on `common-lib`
+- [x] Registers with `discovery-server`, pulls config from `config-server`
+- [x] Added to `docker-compose.yml`, along with a `kafka` service (KRaft mode, no Zookeeper)
+- [x] Tests: an embedded Kafka test verifying the full order-flow choreography in both directions - publish `OrderCreatedEvent` → consumer reacts → nominal case: `OrderConfirmedEvent` published → (in `order-service`'s own test suite) `status` becomes `CONFIRMED`; failure case: simulated failure → `NotificationFailedEvent` published → `status` becomes `CONFIRMATION_FAILED` - plus a simpler test confirming `UserRegisteredEvent`/`PasswordResetRequestedEvent` trigger the expected `EmailNotificationService` call
 
 ## feature/api-gateway
 
@@ -701,12 +709,12 @@ Single entry point. Depends on every business service already being registered.
 
 ### Tasks
 
-- [ ] `spring-cloud-starter-gateway`, route definitions for each service, resolved via Eureka (`lb://` scheme, see [Load balancing](#load-balancing))
-- [ ] `JwtValidationGatewayFilter`: validates the JWT's signature/expiration on every route except `/api/v1/auth/register`, `/api/v1/auth/login`, `/api/v1/auth/activate-account`
-- [ ] `RateLimiterConfig`: Redis-backed `RequestRateLimiter` filter applied to `/api/v1/auth/login`, protecting `auth-service` against brute-force attempts (a fixed number of requests per second per client IP, configurable)
-- [ ] Registers with `discovery-server`, pulls config from `config-server`
-- [ ] Added to `docker-compose.yml`, along with a `redis` service; the only service with a port published to the host
-- [ ] Tests: routing to a mocked downstream, JWT rejection on a protected route without a token, pass-through on public routes, rate limiter returning 429 past the configured threshold
+- [x] `spring-cloud-starter-gateway`, route definitions for each service, resolved via Eureka (`lb://` scheme, see [Load balancing](#load-balancing))
+- [x] `JwtValidationGatewayFilter`: validates the JWT's signature/expiration on every route except `/api/v1/auth/register`, `/api/v1/auth/login`, `/api/v1/auth/activate-account`
+- [x] `RateLimiterConfig`: Redis-backed `RequestRateLimiter` filter applied to `/api/v1/auth/login`, protecting `auth-service` against brute-force attempts (a fixed number of requests per second per client IP, configurable)
+- [x] Registers with `discovery-server`, pulls config from `config-server`
+- [x] Added to `docker-compose.yml`, along with a `redis` service; the only service with a port published to the host
+- [x] Tests: routing to a mocked downstream, JWT rejection on a protected route without a token, pass-through on public routes, rate limiter returning 429 past the configured threshold
 
 ## feature/observability
 
@@ -714,11 +722,11 @@ Distributed tracing across the whole system - arguably the single most useful ad
 
 ### Tasks
 
-- [ ] `micrometer-tracing-bridge-brave`, `zipkin-reporter-brave` added to every service (including `api-gateway`)
-- [ ] `zipkin` service added to `docker-compose.yml` (`openzipkin/zipkin` image), each service configured with `management.tracing.sampling.probability=1.0` for this tutorial (100% sampling - fine for a teaching project, would be lowered in real production)
-- [ ] Verify trace propagation across **both** communication styles: a single trace should show `api-gateway → order-service → catalog-service` (via Feign) as one connected trace, and a separate trace should show `order-service → notification-service` (via the Kafka message) as connected too - Micrometer Tracing instruments both Feign and Kafka automatically, but this must be verified by hand once, not assumed
-- [ ] `common-lib`'s `LoggingAspect` re-verified: logs now include the `traceId`/`spanId` in every line via the MDC, with no code change needed in the aspect itself
-- [ ] A short walkthrough (in this branch's own README) showing a captured trace in the Zipkin UI for a full order-creation request, annotated with what each span represents
+- [x] `micrometer-tracing-bridge-brave`, `zipkin-reporter-brave` added to every service (including `api-gateway`)
+- [x] `zipkin` service added to `docker-compose.yml` (`openzipkin/zipkin` image), each service configured with `management.tracing.sampling.probability=1.0` for this tutorial (100% sampling - fine for a teaching project, would be lowered in real production)
+- [ ] Verify trace propagation across **both** communication styles: a single trace should show `api-gateway → order-service → catalog-service` (via Feign) as one connected trace, and a separate trace should show `order-service → notification-service` (via the Kafka message) as connected too - Micrometer Tracing instruments both Feign and Kafka automatically, but this must be verified by hand once, not assumed (partially verified live: the choreographed Saga genuinely completed end to end and `LoggingAspect` logged a real `traceId`/`spanId`, see `docs/observability/README.md`; a real captured Zipkin trace JSON confirming both hops share one `traceId` was not obtained, left unchecked on purpose)
+- [x] `common-lib`'s `LoggingAspect` re-verified: logs now include the `traceId`/`spanId` in every line via the MDC, with no code change needed in the aspect itself
+- [ ] A short walkthrough (in this branch's own README) showing a captured trace in the Zipkin UI for a full order-creation request, annotated with what each span represents (`docs/observability/README.md` has the walkthrough and annotated span tables, but not an actual captured trace, see above)
 
 ## feature/resilience
 
@@ -726,10 +734,10 @@ Adds fault tolerance to `order-service`'s synchronous calls.
 
 ### Tasks
 
-- [ ] `resilience4j-spring-boot3` dependency, circuit breaker configuration around `ProductClient`/`CustomerClient`
-- [ ] Fallback methods (`client/fallback/`) returning a clear "product/customer service unavailable" business error instead of the order creation hanging or throwing an unhandled exception
-- [ ] A deliberately induced failure test: stop `catalog-service` in the test setup, verify the circuit breaker opens after the configured failure threshold and the fallback is used
-- [ ] Actuator endpoint exposing circuit breaker state (`/actuator/circuitbreakers`)
+- [x] `resilience4j-spring-boot3` dependency, circuit breaker configuration around `ProductClient`/`CustomerClient`
+- [x] Fallback methods (`client/fallback/`) returning a clear "product/customer service unavailable" business error instead of the order creation hanging or throwing an unhandled exception
+- [x] A deliberately induced failure test: stop `catalog-service` in the test setup, verify the circuit breaker opens after the configured failure threshold and the fallback is used
+- [x] Actuator endpoint exposing circuit breaker state (`/actuator/circuitbreakers`)
 
 ## feature/contract-testing (bonus)
 
@@ -737,11 +745,11 @@ Formalizes the API shape `order-service` depends on, so a breaking change in `ca
 
 ### Tasks
 
-- [ ] `spring-cloud-starter-contract-verifier` added to `catalog-service` and `customer-service` (the producers)
-- [ ] Groovy or YAML contracts under `src/test/resources/contracts/` in each producer, describing `GET /api/v1/catalog/products/{id}` and `GET /api/v1/customers/{id}`'s exact response shape
-- [ ] Each producer's build generates and publishes stub JARs (`mvn install` produces a `-stubs` artifact)
-- [ ] `order-service`'s tests replace the hand-written `WireMock` stubs from `feature/order-service` with `spring-cloud-contract-stub-runner`, consuming the generated stubs directly - if `catalog-service` changes its response shape without updating its contract, `order-service`'s build breaks immediately, in CI, without either service needing to be deployed
-- [ ] Document the trade-off honestly: contract testing only replaces the *shape* verification `WireMock` was doing; it doesn't replace `feature/resilience`'s failure-handling tests, which still need hand-written failure scenarios
+- [x] `spring-cloud-starter-contract-verifier` added to `catalog-service` and `customer-service` (the producers)
+- [x] Groovy or YAML contracts under `src/test/resources/contracts/` in each producer, describing `GET /api/v1/catalog/products/{id}` and `GET /api/v1/customers/{id}`'s exact response shape
+- [x] Each producer's build generates and publishes stub JARs (`mvn install` produces a `-stubs` artifact)
+- [x] `order-service`'s tests replace the hand-written `WireMock` stubs from `feature/order-service` with `spring-cloud-contract-stub-runner`, consuming the generated stubs directly - if `catalog-service` changes its response shape without updating its contract, `order-service`'s build breaks immediately, in CI, without either service needing to be deployed
+- [x] Document the trade-off honestly: contract testing only replaces the *shape* verification `WireMock` was doing; it doesn't replace `feature/resilience`'s failure-handling tests, which still need hand-written failure scenarios
 
 ## Order of work
 

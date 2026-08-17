@@ -1,0 +1,17 @@
+# Profil test : api-gateway n'a pas de base de données, rien à fournir dynamiquement ici.
+#
+# WARNING, effectivement mort en pratique: services/api-gateway/src/main/
+# resources/application-test.yml (local au service) désactive complètement
+# l'import config-server pour ce profil (spring.config.import: ""), donc rien
+# dans ce fichier n'atteint jamais les tests tournant sous le profil "test".
+# jwt.secret ci-dessous est donc dupliqué directement dans application-test.yml
+# (le seul fichier réellement lu en test) ; il reste ici uniquement pour la
+# cohérence structurelle avec les autres profils/services.
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+
+jwt:
+  secret: test-only-jwt-secret-not-for-any-real-use-0123456789-api-gateway

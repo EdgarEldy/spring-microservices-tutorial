@@ -1,0 +1,37 @@
+# Prod profile: the "docker-compose up" scenario, against the standalone
+# PostgreSQL container defined in docker-compose.yml (credentials injected as
+# environment variables by that same docker-compose, wired in feature/auth-service).
+spring:
+  datasource:
+    url: ${DB_URL}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+  jpa:
+    show-sql: false
+  kafka:
+    # "kafka" is the Docker Compose service name feature/notification-service
+    # will add; not yet defined in docker-compose.yml at this stage of the
+    # project. The default below documents the intent without blocking
+    # auth-service's startup as long as that service doesn't exist yet (lazy
+    # producer connection, see the equivalent comment in auth-service-dev.yml).
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:kafka:9092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+
+# Deliberately no default here: a prod deployment without JWT_SECRET set
+# must fail at startup (see JwtService, @Value("${jwt.secret}") with no
+# default) rather than start with a guessable secret.
+jwt:
+  secret: ${JWT_SECRET}
+  expiration-ms: ${JWT_EXPIRATION_MS:3600000}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+
+logging:
+  level:
+    root: INFO

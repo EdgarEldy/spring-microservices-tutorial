@@ -1,0 +1,8 @@
+# Dev profile: dev values for catalog-service (datasource, logging, actuator
+# exposure) are centralized in config-server/config-repo/catalog-service-dev.yml and
+# fetched remotely via Spring Cloud Config at startup.
+#
+# This local file is deliberately left empty. It exists for structural
+# consistency across every module in the reactor, and to hold, later, any
+# override that must never go through config-server (e.g. a local secret the
+# developer does not want to commit to config-repo).

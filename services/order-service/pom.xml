@@ -19,13 +19,248 @@
 
     <dependencies>
         <dependency>
+            <groupId>com.edgareldy</groupId>
+            <artifactId>common-lib</artifactId>
+            <version>${revision}</version>
+        </dependency>
+
+        <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
 
         <dependency>
             <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-actuator</artifactId>
+        </dependency>
+
+        <!-- Same rationale as auth-service's pom.xml (see feature/observability): no explicit
+             <version> needed, both come from spring-boot-dependencies' own BOM imports. -->
+        <dependency>
+            <groupId>io.micrometer</groupId>
+            <artifactId>micrometer-tracing-bridge-brave</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>io.zipkin.reporter2</groupId>
+            <artifactId>zipkin-reporter-brave</artifactId>
+        </dependency>
+
+        <!-- Same rationale as auth-service's pom.xml (see feature/observability):
+             without this, BraveAutoConfiguration/ZipkinWithBraveTracingAutoConfiguration
+             never run and the two dependencies above silently do nothing. -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-micrometer-tracing-brave</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-starter-config</artifactId>
+        </dependency>
+
+        <!-- Without this, eureka.client.service-url.defaultZone is inert: the
+             service pulls its config from config-server but never actually
+             registers with discovery-server (lesson from feature/auth-service). -->
+        <dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-starter-netflix-eureka-client</artifactId>
+        </dependency>
+
+        <!-- ProductClient/CustomerClient: the only service in this project that calls
+             other business services synchronously. Resolved via Eureka + Spring Cloud
+             LoadBalancer, same as the discovery dependency above. -->
+        <dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-starter-openfeign</artifactId>
+        </dependency>
+
+        <!-- Circuit breaker around ProductClient/CustomerClient (see feature/resilience).
+             spring-cloud-starter-circuitbreaker-resilience4j supplies the CircuitBreakerFactory
+             bean spring.cloud.openfeign.circuitbreaker.enabled=true needs to back @FeignClient's fallback
+             attribute with Resilience4j; its own version comes from spring-cloud-dependencies'
+             BOM (no explicit <version> needed). resilience4j-spring-boot3 is a transitive
+             dependency of the starter above already, but declared explicitly here too since
+             it is the artifact the README names directly and the one that actually exposes
+             /actuator/circuitbreakers (via its own health/endpoint autoconfiguration), not
+             something the starter's Feign-integration half provides on its own. -->
+        <dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-starter-circuitbreaker-resilience4j</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>io.github.resilience4j</groupId>
+            <artifactId>resilience4j-spring-boot3</artifactId>
+        </dependency>
+
+        <!-- Publishes OrderCreatedEvent after commit, consumes OrderConfirmedEvent/
+             NotificationFailedEvent from notification-service: the choreographed Saga. -->
+        <dependency>
+            <groupId>org.springframework.kafka</groupId>
+            <artifactId>spring-kafka</artifactId>
+        </dependency>
+
+        <!-- Spring Boot 4.x split Kafka's autoconfiguration glue (KafkaAutoConfiguration,
+             the KafkaTemplate/listener-container-factory bean wiring driven by
+             spring.kafka.* properties) out of the old monolithic spring-boot-autoconfigure
+             into this dedicated module, same pattern as spring-boot-flyway. spring-kafka
+             alone (above) is not enough: without this, no KafkaTemplate bean is ever
+             created and every @KafkaListener stays unregistered, silently. -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-kafka</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-jpa</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.postgresql</groupId>
+            <artifactId>postgresql</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-core</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-database-postgresql</artifactId>
+        </dependency>
+
+        <!-- Spring Boot 4.x split Flyway's autoconfiguration glue out of the old
+             monolithic spring-boot-autoconfigure into this dedicated module.
+             flyway-core/flyway-database-postgresql alone (above) no longer run
+             V1__init_schema.sql at all without it: this must be a real
+             (compile-scope) dependency, not test-only, or the deployed service
+             silently never migrates its schema (lesson from feature/auth-service). -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-flyway</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-security</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-validation</artifactId>
+        </dependency>
+
+        <!-- Versions for jjwt/mapstruct/springdoc are pinned once in the root pom.xml's
+             dependencyManagement, not here. order-service only ever parses a JWT issued
+             by auth-service, it never signs one, but jjwt-api is still needed at compile
+             time to call Jwts.parser(). -->
+        <dependency>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-api</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-impl</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-jackson</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springdoc</groupId>
+            <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <scope>provided</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.mapstruct</groupId>
+            <artifactId>mapstruct</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- Spring Boot 4.x split @DataJpaTest and its slice autoconfiguration out of
+             spring-boot-test-autoconfigure into their own per-feature test starter, unlike
+             3.x where spring-boot-starter-test alone was enough. -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-jpa-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- Same 4.x split as spring-boot-starter-data-jpa-test above, but for the MVC test
+             slice: @WebMvcTest/@AutoConfigureMockMvc moved out of spring-boot-test-autoconfigure
+             into this dedicated starter. -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-webmvc-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.security</groupId>
+            <artifactId>spring-security-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-testcontainers</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- Testcontainers 2.x renamed the module from "postgresql" to "testcontainers-postgresql". -->
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>testcontainers-postgresql</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- @EmbeddedKafka for OrderCreatedEvent/OrderConfirmedEvent/NotificationFailedEvent
+             tests, verifying publish-after-commit and both listeners' status transitions. -->
+        <dependency>
+            <groupId>org.springframework.kafka</groupId>
+            <artifactId>spring-kafka-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- Retained for ProductClientTest/CustomerClientTest's hand-rolled 404/500/401
+             failure-path stubs and ProductClientCircuitBreakerTest's simulated-outage stub
+             (see feature/resilience): a contract only ever encodes a producer's *successful*
+             response shape, never a failure a consumer must also defend against, so WireMock
+             stays for those (see feature/contract-testing's trade-off note in README.md). -->
+        <dependency>
+            <groupId>org.wiremock</groupId>
+            <artifactId>wiremock-standalone</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- feature/contract-testing: replaces the hand-written WireMock *success*-shape
+             stubs with the real stub jars catalog-service/customer-service generate from
+             their own Spring Cloud Contract contracts (spring-cloud-starter-contract-verifier
+             on the producer side). No explicit <version>, resolved via the already-imported
+             spring-cloud-dependencies BOM, same as the producers' own verifier starter. -->
+        <dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-starter-contract-stub-runner</artifactId>
             <scope>test</scope>
         </dependency>
     </dependencies>
@@ -35,6 +270,41 @@
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
+                <configuration>
+                    <excludes>
+                        <exclude>
+                            <groupId>org.projectlombok</groupId>
+                            <artifactId>lombok</artifactId>
+                        </exclude>
+                    </excludes>
+                </configuration>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <!-- Order matters: lombok-mapstruct-binding must be resolved before
+                         mapstruct-processor so MapStruct sees Lombok-generated
+                         getters/setters/builders when generating mapper implementations. -->
+                    <annotationProcessorPaths>
+                        <path>
+                            <groupId>org.projectlombok</groupId>
+                            <artifactId>lombok</artifactId>
+                            <version>${lombok.version}</version>
+                        </path>
+                        <path>
+                            <groupId>org.projectlombok</groupId>
+                            <artifactId>lombok-mapstruct-binding</artifactId>
+                            <version>${lombok-mapstruct-binding.version}</version>
+                        </path>
+                        <path>
+                            <groupId>org.mapstruct</groupId>
+                            <artifactId>mapstruct-processor</artifactId>
+                            <version>${mapstruct.version}</version>
+                        </path>
+                    </annotationProcessorPaths>
+                </configuration>
             </plugin>
         </plugins>
     </build>

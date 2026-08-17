@@ -19,13 +19,93 @@
 
     <dependencies>
         <dependency>
+            <groupId>com.edgareldy</groupId>
+            <artifactId>common-lib</artifactId>
+            <version>${revision}</version>
+        </dependency>
+
+        <!-- No REST controllers in this service (consumer-only, see README's Data
+             model), but still needed for spring-boot-starter-actuator's HTTP health/
+             info/metrics endpoints below to be servlet-based and reachable. -->
+        <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
 
         <dependency>
             <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-actuator</artifactId>
+        </dependency>
+
+        <!-- Same rationale as auth-service's pom.xml (see feature/observability): no explicit
+             <version> needed, both come from spring-boot-dependencies' own BOM imports. -->
+        <dependency>
+            <groupId>io.micrometer</groupId>
+            <artifactId>micrometer-tracing-bridge-brave</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>io.zipkin.reporter2</groupId>
+            <artifactId>zipkin-reporter-brave</artifactId>
+        </dependency>
+
+        <!-- Same rationale as auth-service's pom.xml (see feature/observability):
+             without this, BraveAutoConfiguration/ZipkinWithBraveTracingAutoConfiguration
+             never run and the two dependencies above silently do nothing. -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-micrometer-tracing-brave</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-starter-config</artifactId>
+        </dependency>
+
+        <!-- Without this, eureka.client.service-url.defaultZone is inert: the
+             service pulls its config from config-server but never actually
+             registers with discovery-server (lesson from feature/auth-service). -->
+        <dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-starter-netflix-eureka-client</artifactId>
+        </dependency>
+
+        <!-- Consumes order-events/auth-events, produces notification-events: the
+             entire reason this service exists. -->
+        <dependency>
+            <groupId>org.springframework.kafka</groupId>
+            <artifactId>spring-kafka</artifactId>
+        </dependency>
+
+        <!-- Spring Boot 4.x split Kafka's autoconfiguration glue (KafkaAutoConfiguration,
+             the KafkaTemplate/listener-container-factory bean wiring driven by
+             spring.kafka.* properties) out of the old monolithic spring-boot-autoconfigure
+             into this dedicated module. spring-kafka alone is not enough: without this, no
+             KafkaTemplate bean is ever created and every @KafkaListener silently never
+             registers (lesson from feature/order-service, which caught this same gap
+             already merged and unnoticed in auth-service). -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-kafka</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <scope>provided</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- @EmbeddedKafka for the full order-flow choreography test in both
+             directions, and the simpler auth-events fire-and-forget test. -->
+        <dependency>
+            <groupId>org.springframework.kafka</groupId>
+            <artifactId>spring-kafka-test</artifactId>
             <scope>test</scope>
         </dependency>
     </dependencies>
@@ -35,6 +115,28 @@
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
+                <configuration>
+                    <excludes>
+                        <exclude>
+                            <groupId>org.projectlombok</groupId>
+                            <artifactId>lombok</artifactId>
+                        </exclude>
+                    </excludes>
+                </configuration>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <annotationProcessorPaths>
+                        <path>
+                            <groupId>org.projectlombok</groupId>
+                            <artifactId>lombok</artifactId>
+                            <version>${lombok.version}</version>
+                        </path>
+                    </annotationProcessorPaths>
+                </configuration>
             </plugin>
         </plugins>
     </build>

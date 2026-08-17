@@ -1,0 +1,61 @@
+server:
+  port: 8081
+
+# EUREKA_URI overridden per Docker Compose service (see docker-compose.yml) to
+# discovery-server's container name; defaults to localhost for a plain IDE/
+# `mvn spring-boot:run` execution. Previously hardcoded, fixed as part of
+# feature/api-gateway once api-gateway's lb:// routing made this a genuine
+# functional requirement rather than just a known gap (see git history for the
+# comment this replaces at the top of docker-compose.yml).
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_URI:http://localhost:8761/eureka/}
+
+spring:
+  flyway:
+    # Flyway owns the schema (V1__init_schema.sql and whatever follows it);
+    # it must run, and must run before Hibernate touches the schema at all.
+    enabled: true
+  jpa:
+    hibernate:
+      # Flyway is the single source of truth for the schema: Hibernate only
+      # validates that the entities match what Flyway already created, it
+      # never creates/updates DDL itself (no "update"/"create" here, ever).
+      ddl-auto: validate
+    # Explicit even though the framework default is also "open", to make the
+    # choice visible: keeps the persistence context scoped to the
+    # transaction instead of the whole request, so a lazy-loading access
+    # from a controller/serializer fails loudly at the service boundary
+    # instead of silently succeeding outside a transaction.
+    open-in-view: false
+  # Micrometer Tracing does NOT instrument a Kafka producer purely by having
+  # micrometer-tracing-bridge-brave on the classpath: spring.kafka.template.
+  # observation-enabled defaults to false in spring-boot-kafka, and must be
+  # explicitly turned on for trace context to actually propagate through the
+  # __TypeId__/other Kafka record headers. auth-service only produces (never
+  # consumes), so no spring.kafka.listener.observation-enabled here.
+  kafka:
+    template:
+      observation-enabled: true
+
+management:
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      group:
+        readiness:
+          include: readinessState
+        liveness:
+          include: livenessState
+  # 100% sampling, fine for a teaching project (would be lowered in real production).
+  tracing:
+    sampling:
+      probability: 1.0
+  # ZIPKIN_URI follows the exact same env-var-overridable pattern as EUREKA_URI above
+  # (default localhost for a plain IDE/`mvn spring-boot:run` execution, overridden to
+  # the "zipkin" Docker Compose service name in docker-compose.yml).
+  zipkin:
+    tracing:
+      endpoint: ${ZIPKIN_URI:http://localhost:9411/api/v2/spans}

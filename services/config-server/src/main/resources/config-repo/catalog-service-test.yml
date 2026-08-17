@@ -1,0 +1,26 @@
+# Test profile: no spring.datasource here. Integration tests use
+# Testcontainers with dynamically generated credentials via
+# @DynamicPropertySource or equivalent, not this centralized config.
+#
+# WARNING, effectively dead in practice today: services/catalog-service/src/main/
+# resources/application-test.yml (local to the service) fully disables the
+# config-server import for this profile (spring.config.import: ""), so nothing
+# in this file ever reaches tests running with the "test" profile. jwt.secret
+# below is therefore duplicated directly in application-test.yml (the only file
+# actually read in tests); it stays here purely for structural consistency with
+# the other profiles/services.
+#
+# Value deliberately DIFFERENT from auth-service-test.yml: unlike the dev/prod
+# profiles (where a real token issued by auth-service must be validated by
+# catalog-service in the same environment), catalog-service's tests never
+# validate a JWT actually issued by auth-service; they mint their own test
+# tokens locally (same service and key). No cross-service consistency
+# constraint applies here.
+jwt:
+  secret: test-only-jwt-secret-not-for-any-real-use-0123456789-catalog-service
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health

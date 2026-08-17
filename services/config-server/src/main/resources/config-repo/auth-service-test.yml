@@ -1,0 +1,26 @@
+# Test profile: no spring.datasource here. Integration tests use
+# Testcontainers with dynamically generated credentials via
+# @DynamicPropertySource or equivalent, not this centralized config.
+#
+# WARNING, effectively dead in practice today: services/auth-service/src/main/
+# resources/application-test.yml (local to the service) fully disables the
+# config-server import (spring.config.import: "") for this profile, so
+# nothing in this config-repo file ever reaches tests running with the
+# "test" profile. jwt.secret/jwt.expiration-ms below are therefore duplicated
+# directly in application-test.yml (the only file actually read in tests);
+# they stay here purely for structural consistency with the other
+# profiles/services, and for the day the import gets re-enabled.
+jwt:
+  secret: test-only-jwt-secret-not-for-any-real-use-0123456789-auth-service
+  expiration-ms: 3600000
+
+# No spring.kafka.bootstrap-servers here: tests use either a mocked
+# KafkaTemplate (unit/service tests) or an embedded/Testcontainers Kafka
+# broker configured directly in the test classes via @DynamicPropertySource,
+# never this centralized config (which isn't read in the "test" profile
+# anyway, see the note above).
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health

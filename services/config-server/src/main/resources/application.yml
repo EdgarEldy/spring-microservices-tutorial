@@ -1,6 +1,34 @@
 spring:
   application:
     name: config-server
+  # Native/classpath-backed config repo (no Git backend), as required by the README.
+  profiles:
+    active: native
+  cloud:
+    config:
+      server:
+        native:
+          search-locations: classpath:/config-repo/
 
 server:
   port: 8888
+
+management:
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      group:
+        readiness:
+          include: readinessState
+        liveness:
+          include: livenessState
+  # Same rationale as discovery-server's application.yml: this service serves
+  # config-repo, it never consumes it, so this lives locally rather than in a
+  # config-repo/config-server.yml that would never exist.
+  tracing:
+    sampling:
+      probability: 1.0
+  zipkin:
+    tracing:
+      endpoint: ${ZIPKIN_URI:http://localhost:9411/api/v2/spans}

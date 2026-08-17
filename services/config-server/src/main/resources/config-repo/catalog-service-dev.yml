@@ -1,0 +1,34 @@
+# Dev profile: local execution outside Docker Compose, against the shared
+# "postgres_main" Postgres container already running on this machine
+# (superuser credentials admin/admin, port 5432 published on the host).
+# catalog_db was created manually in it.
+#
+# Flyway/ddl-auto=validate/open-in-view now live in the neutral catalog-service.yml
+# (common to every profile), no need to repeat them here: JPA entities,
+# repositories, and V1__init_schema.sql all exist now.
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/catalog_db
+    username: admin
+    password: admin
+  jpa:
+    show-sql: true
+
+# Dev-only HMAC-SHA256 secret: never used outside this machine, protects nothing
+# real. SAME value as auth-service-dev.yml (required: catalog-service only ever
+# validates JWTs issued by auth-service, via the same symmetric HMAC key; a
+# different value would make every cross-service token validation fail). Never
+# reuse this value in production (see catalog-service-prod.yml, which requires
+# ${JWT_SECRET} with no default).
+jwt:
+  secret: dev-only-jwt-secret-please-override-in-production-0123456789-auth-service
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+
+logging:
+  level:
+    com.edgareldy.springmicroservicestutorial.catalogservice: DEBUG

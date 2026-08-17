@@ -1,0 +1,7 @@
+# Dev profile: wide actuator surface to make local debugging of discovery-server
+# easier (no datasource, no large business package to debug here).
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics

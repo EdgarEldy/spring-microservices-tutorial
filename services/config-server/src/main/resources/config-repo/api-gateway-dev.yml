@@ -1,0 +1,26 @@
+# Profil dev : api-gateway n'a pas de base de données (voir README, data model), donc
+# pas de bloc spring.datasource ici.
+spring:
+  data:
+    redis:
+      host: localhost
+      port: 6379
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+
+logging:
+  level:
+    com.edgareldy.springmicroservicestutorial.apigateway: DEBUG
+
+# Dev-only HMAC-SHA256 secret: never used outside this machine, protects nothing
+# real. SAME value as auth-service-dev.yml (required: api-gateway only ever
+# validates JWTs issued by auth-service, via the same symmetric HMAC key; a
+# different value would make every validation fail here even for a genuinely
+# valid token). Never reuse this value in production (see api-gateway-prod.yml,
+# which requires ${JWT_SECRET} with no default).
+jwt:
+  secret: dev-only-jwt-secret-please-override-in-production-0123456789-auth-service

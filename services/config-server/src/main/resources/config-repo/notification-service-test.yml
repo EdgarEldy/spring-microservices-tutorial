@@ -1,0 +1,12 @@
+# Profil test : notification-service n'a pas de base de données, rien à fournir
+# dynamiquement ici pour la persistance. Pas de config Kafka non plus : les tests
+# utilisent @EmbeddedKafka, câblé via @DynamicPropertySource, jamais cette config
+# centralisée (spring.config.import est vide sous le profil "test" via
+# application-test.yml, donc ce fichier n'est de toute façon jamais atteint en
+# pratique par les tests, gardé ici uniquement par cohérence structurelle avec
+# les profils dev/prod).
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
