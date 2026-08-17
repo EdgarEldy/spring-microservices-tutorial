@@ -2,13 +2,9 @@ package com.edgareldy.springmicroservicestutorial.orderservice.client;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
-import static com.github.tomakehurst.wiremock.client.WireMock.okJson;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import com.edgareldy.springmicroservicestutorial.commonlib.dto.ApiResponse;
-import com.edgareldy.springmicroservicestutorial.orderservice.client.dto.ProductResponse;
 import com.github.tomakehurst.wiremock.WireMockServer;
 import feign.FeignException;
 import org.junit.jupiter.api.AfterAll;
@@ -28,13 +24,19 @@ import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.TestPropertySource;
 
 /**
- * WireMock-backed test for {@link ProductClient}, verifying its actual HTTP/JSON wiring
- * against a real (stubbed) server rather than a Mockito mock of the interface: that
- * {@code ApiResponse<ProductResponse>} deserializes correctly from a genuine 200 response, and
- * that a real 404 response genuinely surfaces as {@code FeignException.NotFound} (the
- * exception type {@code ProductClientFallbackFactory} pattern-matches on, see
- * {@code feature/resilience}), not just assumed. Backs the README's "WireMock stubs for
- * ProductClient/CustomerClient (success and failure)" test requirement.
+ * WireMock-backed test for {@link ProductClient}'s failure paths: that a real 404 response
+ * genuinely surfaces as {@code FeignException.NotFound} (the exception type {@code
+ * ProductClientFallbackFactory} pattern-matches on, see {@code feature/resilience}), and that a
+ * real 500 response surfaces as a plain {@code FeignException}, not just assumed.
+ * <p>
+ * The success-path 200 test that used to live here (verifying {@code
+ * ApiResponse<ProductResponse>} deserializes correctly from a genuine response body) has moved
+ * to {@link ProductClientContractTest} (see feature/contract-testing), which asserts the same
+ * thing against the real stub jar {@code catalog-service} generates from its own Spring Cloud
+ * Contract contract instead of a hand-written 200 stub here. This class stays, and keeps its
+ * own hand-rolled WireMock server, only because a contract never encodes a failure response: it
+ * documents one producer-guaranteed success shape, never the 404/500 a consumer must also
+ * defend against. See {@link ProductClientContractTest}'s Javadoc for the full trade-off note.
  * <p>
  * Uses a minimal, hand-picked {@code @SpringBootTest(classes = ...)} context rather than the
  * full {@code OrderServiceApplication} one: {@code @EnableAutoConfiguration} alone (no
@@ -91,21 +93,6 @@ class ProductClientTest {
     @DynamicPropertySource
     static void registerCatalogServiceUrl(DynamicPropertyRegistry registry) {
         registry.add("catalog-service.url", () -> wireMockServer.baseUrl());
-    }
-
-    @Test
-    void getProduct_success_deserializesApiResponseEnvelopeAndProductResponse() {
-        wireMockServer.stubFor(get(urlEqualTo("/api/v1/catalog/products/1"))
-                .willReturn(okJson("""
-                        {"success":true,"message":"Product retrieved","data":{"id":1,"productName":"Clean Code","unitPrice":39.90,"categoryId":1},"timestamp":"2026-08-16T00:00:00Z"}
-                        """)));
-
-        ApiResponse<ProductResponse> response = productClient.getProduct(1L);
-
-        assertThat(response.success()).isTrue();
-        assertThat(response.data().id()).isEqualTo(1L);
-        assertThat(response.data().productName()).isEqualTo("Clean Code");
-        assertThat(response.data().unitPrice()).isEqualTo(39.90);
     }
 
     @Test

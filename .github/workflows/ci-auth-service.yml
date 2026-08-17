@@ -34,4 +34,4 @@ jobs:
           cache: maven
 
       - name: Build and test auth-service
-        run: mvn -B -pl services/auth-service -am test
+        run: ./mvnw -B -pl services/auth-service -am test

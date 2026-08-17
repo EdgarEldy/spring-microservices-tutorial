@@ -34,4 +34,4 @@ jobs:
           cache: maven
 
       - name: Build and test discovery-server
-        run: mvn -B -pl services/discovery-server -am test
+        run: ./mvnw -B -pl services/discovery-server -am test

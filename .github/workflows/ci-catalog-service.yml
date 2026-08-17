@@ -34,4 +34,4 @@ jobs:
           cache: maven
 
       - name: Build and test catalog-service
-        run: mvn -B -pl services/catalog-service -am test
+        run: ./mvnw -B -pl services/catalog-service -am test

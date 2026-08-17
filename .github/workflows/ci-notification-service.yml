@@ -34,4 +34,4 @@ jobs:
           cache: maven
 
       - name: Build and test notification-service
-        run: mvn -B -pl services/notification-service -am test
+        run: ./mvnw -B -pl services/notification-service -am test

@@ -745,11 +745,11 @@ Formalizes the API shape `order-service` depends on, so a breaking change in `ca
 
 ### Tasks
 
-- [ ] `spring-cloud-starter-contract-verifier` added to `catalog-service` and `customer-service` (the producers)
-- [ ] Groovy or YAML contracts under `src/test/resources/contracts/` in each producer, describing `GET /api/v1/catalog/products/{id}` and `GET /api/v1/customers/{id}`'s exact response shape
-- [ ] Each producer's build generates and publishes stub JARs (`mvn install` produces a `-stubs` artifact)
-- [ ] `order-service`'s tests replace the hand-written `WireMock` stubs from `feature/order-service` with `spring-cloud-contract-stub-runner`, consuming the generated stubs directly - if `catalog-service` changes its response shape without updating its contract, `order-service`'s build breaks immediately, in CI, without either service needing to be deployed
-- [ ] Document the trade-off honestly: contract testing only replaces the *shape* verification `WireMock` was doing; it doesn't replace `feature/resilience`'s failure-handling tests, which still need hand-written failure scenarios
+- [x] `spring-cloud-starter-contract-verifier` added to `catalog-service` and `customer-service` (the producers)
+- [x] Groovy or YAML contracts under `src/test/resources/contracts/` in each producer, describing `GET /api/v1/catalog/products/{id}` and `GET /api/v1/customers/{id}`'s exact response shape
+- [x] Each producer's build generates and publishes stub JARs (`mvn install` produces a `-stubs` artifact)
+- [x] `order-service`'s tests replace the hand-written `WireMock` stubs from `feature/order-service` with `spring-cloud-contract-stub-runner`, consuming the generated stubs directly - if `catalog-service` changes its response shape without updating its contract, `order-service`'s build breaks immediately, in CI, without either service needing to be deployed
+- [x] Document the trade-off honestly: contract testing only replaces the *shape* verification `WireMock` was doing; it doesn't replace `feature/resilience`'s failure-handling tests, which still need hand-written failure scenarios
 
 ## Order of work
 

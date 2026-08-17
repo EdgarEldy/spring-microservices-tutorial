@@ -190,6 +190,18 @@
             <artifactId>testcontainers-postgresql</artifactId>
             <scope>test</scope>
         </dependency>
+
+        <!-- No explicit <version>: resolved from spring-cloud-dependencies (imported as a BOM
+             in the root pom.xml), which in turn imports spring-cloud-contract-dependencies.
+             Generates, at test-compile time, one JUnit test per contract under
+             src/test/resources/contracts extending CustomerContractBase, and (on `install`)
+             publishes a -stubs jar consumers can pull in via spring-cloud-contract-stub-runner
+             instead of hand-writing WireMock stubs. -->
+        <dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-starter-contract-verifier</artifactId>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <build>
@@ -232,6 +244,88 @@
                         </path>
                     </annotationProcessorPaths>
                 </configuration>
+            </plugin>
+
+            <!-- Unlike spring-cloud-starter-contract-verifier above, this plugin's version is
+                 NOT resolved from the imported spring-cloud-dependencies BOM: that BOM only
+                 manages <dependencies>, never build <plugins>, and Maven does not inherit
+                 properties (spring-cloud-contract.version = 5.0.3 in this train) from an
+                 imported POM into this module's own property table. Pinned explicitly here
+                 instead of reusing ${spring-cloud.version} (2025.1.2): spring-cloud-contract
+                 ships its own, distinct release train, resolved by cross-checking the value
+                 actually declared in spring-cloud-dependencies:2025.1.2's dependencyManagement.
+
+                 Deliberately NOT <extensions>true</extensions>: that flag makes Maven load
+                 this plugin as a *core* extension during full reactor graph construction,
+                 for every build in this repo, even one that only targets an unrelated
+                 module and never touches customer-service at all, since Maven still reads
+                 every module's POM (and its declared extensions) to compute that graph
+                 before filtering by -pl. This plugin's own dependency tree brings in the
+                 ancient org.apache.maven:maven-project:2.2.1 API (and its own old
+                 transitive httpclient), and loading that into Maven's shared core
+                 classloader alongside Maven's own httpclient usage produced a genuine,
+                 reproducible ClassCastException (BasicAuthCache/AuthCache loaded by two
+                 different ClassRealms) on a fresh CI runner, confirmed by clearing this
+                 plugin's artifacts from .m2 and re-running common-lib's own CI job, which
+                 does not build this module at all. Binding the three goals below
+                 explicitly via <executions> instead achieves the same result (each goal's
+                 own default phase, generateTests/convert/generateStubs, comes straight
+                 from this plugin's own plugin.xml, unaffected by the extensions flag)
+                 without ever loading this plugin outside a build that actually includes
+                 this module. -->
+            <plugin>
+                <groupId>org.springframework.cloud</groupId>
+                <artifactId>spring-cloud-contract-maven-plugin</artifactId>
+                <version>5.0.3</version>
+                <!-- Removing <extensions>true</extensions> (see comment above) stopped this
+                     plugin's legacy dependency chain from loading for reactor builds that
+                     never touch this module, but the same ClassCastException (org.apache.
+                     http.impl.client.BasicAuthCache / org.apache.http.client.AuthCache
+                     across two different ClassRealms) still happened for builds that DO
+                     build this module, since org.apache.maven.shared:maven-shared-incremental
+                     (used only for this plugin's optional incremental/staleness checks,
+                     already forced off via incrementalContractTests=false below) pulls in
+                     the entire ancient org.apache.maven:maven-core:2.2.1 API, which itself
+                     depends on org.apache.maven.wagon:wagon-http:1.0-beta-6, loading a
+                     second, classloader-distinct copy of the httpclient classes alongside
+                     the modern org.apache.httpcomponents:httpclient:4.5.14 Maven's own
+                     resolver already uses. Excluding it removes that entire legacy chain
+                     (confirmed via a scratch project's dependency:tree) without affecting
+                     any of the three goals actually used below. -->
+                <dependencies>
+                    <dependency>
+                        <groupId>org.apache.maven.shared</groupId>
+                        <artifactId>maven-shared-incremental</artifactId>
+                        <version>1.1</version>
+                        <exclusions>
+                            <exclusion>
+                                <groupId>org.apache.maven</groupId>
+                                <artifactId>maven-core</artifactId>
+                            </exclusion>
+                        </exclusions>
+                    </dependency>
+                </dependencies>
+                <configuration>
+                    <baseClassForTests>com.edgareldy.springmicroservicestutorial.customerservice.contract.CustomerContractBase</baseClassForTests>
+                    <!-- GenerateTestsMojo's "up to date" fast path (default true) skips
+                         MavenProject#addTestCompileSourceRoot(...) entirely whenever it
+                         decides nothing changed, including on a plain first build in some
+                         cases observed here: the generated test class then silently never
+                         gets compiled or run, with no build failure to notice it. Forcing
+                         full regeneration every build sidesteps that; regenerating one
+                         contract's test class is cheap enough that the incremental skip
+                         buys nothing worth this footgun. -->
+                    <incrementalContractTests>false</incrementalContractTests>
+                </configuration>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>generateTests</goal>
+                            <goal>convert</goal>
+                            <goal>generateStubs</goal>
+                        </goals>
+                    </execution>
+                </executions>
             </plugin>
         </plugins>
     </build>

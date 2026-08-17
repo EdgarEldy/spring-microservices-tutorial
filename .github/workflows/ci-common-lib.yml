@@ -31,4 +31,4 @@ jobs:
           cache: maven
 
       - name: Build and test common-lib
-        run: mvn -B -pl common-lib -am test
+        run: ./mvnw -B -pl common-lib -am test
