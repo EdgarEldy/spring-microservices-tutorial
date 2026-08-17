@@ -247,10 +247,28 @@
 
             <!-- feature/contract-testing: generates a JUnit test per contract under
                  src/test/resources/contracts, running it against baseClassForTests below,
-                 and (thanks to <extensions>true</extensions>, which hooks this plugin into
-                 the packaging lifecycle) attaches a "-stubs" jar built from those same
-                 contracts to this module's install/deploy, for order-service's
-                 consumer-side stub runner to consume.
+                 and attaches a "-stubs" jar built from those same contracts to this
+                 module's install/deploy, for order-service's consumer-side stub runner to
+                 consume.
+
+                 Deliberately NOT <extensions>true</extensions>: that flag makes Maven load
+                 this plugin as a *core* extension during full reactor graph construction,
+                 for every build in this repo, even one that only targets an unrelated
+                 module (e.g. "mvn -pl common-lib -am test") and never touches
+                 catalog-service at all, since Maven still reads every module's POM (and
+                 its declared extensions) to compute that graph before filtering by -pl.
+                 This plugin's own dependency tree brings in the ancient
+                 org.apache.maven:maven-project:2.2.1 API (and its own old transitive
+                 httpclient), and loading that into Maven's shared core classloader
+                 alongside Maven's own httpclient usage produced a genuine, reproducible
+                 ClassCastException (BasicAuthCache/AuthCache loaded by two different
+                 ClassRealms) on a fresh CI runner, confirmed by clearing this plugin's
+                 artifacts from .m2 and re-running common-lib's own CI job, which does not
+                 build this module at all. Binding the three goals below explicitly via
+                 <executions> instead achieves the same result (each goal's own default
+                 phase, generateTests/convert/generateStubs, comes straight from this
+                 plugin's own plugin.xml, unaffected by the extensions flag) without ever
+                 loading this plugin outside a build that actually includes this module.
 
                  <version> is pinned explicitly rather than left to
                  spring-cloud-dependencies: that BOM only manages *dependency* versions
@@ -266,7 +284,6 @@
                 <groupId>org.springframework.cloud</groupId>
                 <artifactId>spring-cloud-contract-maven-plugin</artifactId>
                 <version>5.0.3</version>
-                <extensions>true</extensions>
                 <configuration>
                     <baseClassForTests>com.edgareldy.springmicroservicestutorial.catalogservice.contract.ProductContractBase</baseClassForTests>
                     <!-- Default true: the plugin's ChangeDetector skips registering the
@@ -275,6 +292,15 @@
                          no warning). Forces the goal to always regenerate and register it. -->
                     <incrementalContractTests>false</incrementalContractTests>
                 </configuration>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>generateTests</goal>
+                            <goal>convert</goal>
+                            <goal>generateStubs</goal>
+                        </goals>
+                    </execution>
+                </executions>
             </plugin>
         </plugins>
     </build>
