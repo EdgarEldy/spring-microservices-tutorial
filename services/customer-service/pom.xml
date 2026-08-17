@@ -190,6 +190,18 @@
             <artifactId>testcontainers-postgresql</artifactId>
             <scope>test</scope>
         </dependency>
+
+        <!-- No explicit <version>: resolved from spring-cloud-dependencies (imported as a BOM
+             in the root pom.xml), which in turn imports spring-cloud-contract-dependencies.
+             Generates, at test-compile time, one JUnit test per contract under
+             src/test/resources/contracts extending CustomerContractBase, and (on `install`)
+             publishes a -stubs jar consumers can pull in via spring-cloud-contract-stub-runner
+             instead of hand-writing WireMock stubs. -->
+        <dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-starter-contract-verifier</artifactId>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <build>
@@ -231,6 +243,33 @@
                             <version>${mapstruct.version}</version>
                         </path>
                     </annotationProcessorPaths>
+                </configuration>
+            </plugin>
+
+            <!-- Unlike spring-cloud-starter-contract-verifier above, this plugin's version is
+                 NOT resolved from the imported spring-cloud-dependencies BOM: that BOM only
+                 manages <dependencies>, never build <plugins>, and Maven does not inherit
+                 properties (spring-cloud-contract.version = 5.0.3 in this train) from an
+                 imported POM into this module's own property table. Pinned explicitly here
+                 instead of reusing ${spring-cloud.version} (2025.1.2): spring-cloud-contract
+                 ships its own, distinct release train, resolved by cross-checking the value
+                 actually declared in spring-cloud-dependencies:2025.1.2's dependencyManagement. -->
+            <plugin>
+                <groupId>org.springframework.cloud</groupId>
+                <artifactId>spring-cloud-contract-maven-plugin</artifactId>
+                <version>5.0.3</version>
+                <extensions>true</extensions>
+                <configuration>
+                    <baseClassForTests>com.edgareldy.springmicroservicestutorial.customerservice.contract.CustomerContractBase</baseClassForTests>
+                    <!-- GenerateTestsMojo's "up to date" fast path (default true) skips
+                         MavenProject#addTestCompileSourceRoot(...) entirely whenever it
+                         decides nothing changed, including on a plain first build in some
+                         cases observed here: the generated test class then silently never
+                         gets compiled or run, with no build failure to notice it. Forcing
+                         full regeneration every build sidesteps that; regenerating one
+                         contract's test class is cheap enough that the incremental skip
+                         buys nothing worth this footgun. -->
+                    <incrementalContractTests>false</incrementalContractTests>
                 </configuration>
             </plugin>
         </plugins>
