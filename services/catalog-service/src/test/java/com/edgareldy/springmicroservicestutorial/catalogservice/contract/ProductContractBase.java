@@ -2,7 +2,6 @@ package com.edgareldy.springmicroservicestutorial.catalogservice.contract;
 
 import static org.mockito.Mockito.when;
 
-import com.edgareldy.springmicroservicestutorial.catalogservice.config.MethodSecurityConfig;
 import com.edgareldy.springmicroservicestutorial.catalogservice.controller.ProductController;
 import com.edgareldy.springmicroservicestutorial.catalogservice.dto.ProductResponse;
 import com.edgareldy.springmicroservicestutorial.catalogservice.security.JwtService;
@@ -12,7 +11,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
-import org.springframework.context.annotation.Import;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -37,7 +35,6 @@ import org.springframework.test.web.servlet.MockMvc;
  * Project : spring-microservices-tutorial
  */
 @WebMvcTest(ProductController.class)
-@Import(MethodSecurityConfig.class)
 @AutoConfigureMockMvc(addFilters = false)
 public abstract class ProductContractBase {
 
