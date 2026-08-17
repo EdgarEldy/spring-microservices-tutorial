@@ -242,11 +242,25 @@
             <scope>test</scope>
         </dependency>
 
-        <!-- Stubs ProductClient/CustomerClient's downstream HTTP calls in tests, both the
-             success and failure (FeignException) paths, per the README's test requirement. -->
+        <!-- Retained for ProductClientTest/CustomerClientTest's hand-rolled 404/500/401
+             failure-path stubs and ProductClientCircuitBreakerTest's simulated-outage stub
+             (see feature/resilience): a contract only ever encodes a producer's *successful*
+             response shape, never a failure a consumer must also defend against, so WireMock
+             stays for those (see feature/contract-testing's trade-off note in README.md). -->
         <dependency>
             <groupId>org.wiremock</groupId>
             <artifactId>wiremock-standalone</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- feature/contract-testing: replaces the hand-written WireMock *success*-shape
+             stubs with the real stub jars catalog-service/customer-service generate from
+             their own Spring Cloud Contract contracts (spring-cloud-starter-contract-verifier
+             on the producer side). No explicit <version>, resolved via the already-imported
+             spring-cloud-dependencies BOM, same as the producers' own verifier starter. -->
+        <dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-starter-contract-stub-runner</artifactId>
             <scope>test</scope>
         </dependency>
     </dependencies>
