@@ -2,13 +2,9 @@ package com.edgareldy.springmicroservicestutorial.orderservice.client;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
-import static com.github.tomakehurst.wiremock.client.WireMock.okJson;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import com.edgareldy.springmicroservicestutorial.commonlib.dto.ApiResponse;
-import com.edgareldy.springmicroservicestutorial.orderservice.client.dto.CustomerResponse;
 import com.github.tomakehurst.wiremock.WireMockServer;
 import feign.FeignException;
 import org.junit.jupiter.api.AfterAll;
@@ -28,15 +24,16 @@ import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.TestPropertySource;
 
 /**
- * WireMock-backed test for {@link CustomerClient}, mirroring {@link ProductClientTest}'s own
- * rationale and minimal-context setup exactly (see that class' Javadoc). {@code
- * customer-service.url} is overridden instead of {@code catalog-service.url}. Unlike
- * {@code customer-service}'s real {@code SecurityConfig} (which requires {@code
- * authenticated()} on every {@code /api/v1/customers/**} route), the WireMock stub here does
- * not enforce that: it only proves {@link CustomerClient}'s own HTTP/JSON wiring is correct,
- * the {@code Authorization}-forwarding behaviour itself is {@link
- * com.edgareldy.springmicroservicestutorial.orderservice.config.FeignConfig}'s concern, not
- * this client's.
+ * WireMock-backed test for {@link CustomerClient}'s failure paths, mirroring {@link
+ * ProductClientTest}'s own rationale and minimal-context setup exactly (see that class'
+ * Javadoc, including why the success-path test moved out to {@link
+ * CustomerClientContractTest}). {@code customer-service.url} is overridden instead of
+ * {@code catalog-service.url}. Unlike {@code customer-service}'s real {@code SecurityConfig}
+ * (which requires {@code authenticated()} on every {@code /api/v1/customers/**} route), the
+ * WireMock stub here does not enforce that: it only proves {@link CustomerClient}'s own
+ * HTTP/JSON wiring is correct on failure, the {@code Authorization}-forwarding behaviour itself
+ * is {@link com.edgareldy.springmicroservicestutorial.orderservice.config.FeignConfig}'s
+ * concern, not this client's.
  * <p>
  * Created by Edgar Muhamyangabo on 8/16/26
  * Author : Edgar Muhamyangabo
@@ -81,21 +78,6 @@ class CustomerClientTest {
     @DynamicPropertySource
     static void registerCustomerServiceUrl(DynamicPropertyRegistry registry) {
         registry.add("customer-service.url", () -> wireMockServer.baseUrl());
-    }
-
-    @Test
-    void getCustomer_success_deserializesApiResponseEnvelopeAndCustomerResponse() {
-        wireMockServer.stubFor(get(urlEqualTo("/api/v1/customers/1"))
-                .willReturn(okJson("""
-                        {"success":true,"message":"Customer retrieved","data":{"id":1,"userId":1,"firstName":"Ada","lastName":"Lovelace","telephone":"+1234567890","email":"ada@example.com","address":"123 Main St"},"timestamp":"2026-08-16T00:00:00Z"}
-                        """)));
-
-        ApiResponse<CustomerResponse> response = customerClient.getCustomer(1L);
-
-        assertThat(response.success()).isTrue();
-        assertThat(response.data().id()).isEqualTo(1L);
-        assertThat(response.data().firstName()).isEqualTo("Ada");
-        assertThat(response.data().email()).isEqualTo("ada@example.com");
     }
 
     @Test
