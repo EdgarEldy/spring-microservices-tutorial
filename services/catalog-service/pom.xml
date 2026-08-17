@@ -188,6 +188,19 @@
             <artifactId>testcontainers-postgresql</artifactId>
             <scope>test</scope>
         </dependency>
+
+        <!-- feature/contract-testing: generates one JUnit test per contract under
+             src/test/resources/contracts against ProductContractBase, and (via the
+             spring-cloud-contract-maven-plugin below) packages those same contracts into
+             a -stubs jar that order-service's consumer-side stub runner installs and
+             replays. No explicit <version> needed: spring-cloud-dependencies (imported
+             in the root pom.xml) already imports spring-cloud-contract-dependencies,
+             which manages this artifact's version. -->
+        <dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-starter-contract-verifier</artifactId>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <build>
@@ -229,6 +242,38 @@
                             <version>${mapstruct.version}</version>
                         </path>
                     </annotationProcessorPaths>
+                </configuration>
+            </plugin>
+
+            <!-- feature/contract-testing: generates a JUnit test per contract under
+                 src/test/resources/contracts, running it against baseClassForTests below,
+                 and (thanks to <extensions>true</extensions>, which hooks this plugin into
+                 the packaging lifecycle) attaches a "-stubs" jar built from those same
+                 contracts to this module's install/deploy, for order-service's
+                 consumer-side stub runner to consume.
+
+                 <version> is pinned explicitly rather than left to
+                 spring-cloud-dependencies: that BOM only manages *dependency* versions
+                 (see spring-cloud-starter-contract-verifier above), never build *plugin*
+                 versions, and there is no "2025.1.2"/"Oakwood" release of this Maven
+                 plugin artifact regardless (Spring Cloud Contract keeps its own release
+                 numbering, decoupled from the umbrella train name). 5.0.3 is the exact
+                 version spring-cloud-dependencies:2025.1.2 itself pulls in for
+                 spring-cloud-contract-dependencies (its <spring-cloud-contract.version>
+                 property), confirmed against Maven Central, so it is pinned here to stay
+                 consistent with the dependency version actually in use. -->
+            <plugin>
+                <groupId>org.springframework.cloud</groupId>
+                <artifactId>spring-cloud-contract-maven-plugin</artifactId>
+                <version>5.0.3</version>
+                <extensions>true</extensions>
+                <configuration>
+                    <baseClassForTests>com.edgareldy.springmicroservicestutorial.catalogservice.contract.ProductContractBase</baseClassForTests>
+                    <!-- Default true: the plugin's ChangeDetector skips registering the
+                         generated test as a compiled source root when it thinks nothing
+                         changed, silently never compiling or running it (no build failure,
+                         no warning). Forces the goal to always regenerate and register it. -->
+                    <incrementalContractTests>false</incrementalContractTests>
                 </configuration>
             </plugin>
         </plugins>
