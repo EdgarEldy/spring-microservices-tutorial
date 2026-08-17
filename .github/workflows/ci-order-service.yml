@@ -41,20 +41,26 @@ jobs:
       # ci-customer-service.yml) already runs its contract-verification test against its real
       # controller, re-running it again from a consumer's pipeline would be redundant.
       #
+      # -Dspring-boot.repackage.skip=true: this job is the first place in this repo's CI where
+      # spring-boot-maven-plugin's repackage goal and spring-cloud-contract-maven-plugin's goals
+      # ever run together in the same build (every other job stops at the "test" phase, which
+      # never reaches "package"/repackage/install at all). That specific combination
+      # reproducibly triggered a Maven plugin classloader conflict on this project's GitHub
+      # Actions runner (a ClassCastException between two different copies of
+      # org.apache.httpcomponents:httpclient classes, loaded into two different plugin
+      # ClassRealms, always immediately at the repackage step), never reproducible locally under
+      # any tested configuration, including a genuinely fresh, isolated local repository. Skipping
+      # repackage here is also the semantically correct choice regardless: order-service's stub
+      # runner only ever resolves the "-stubs" classified artifact, never the executable
+      # Spring Boot jar, so there is no reason to produce one in this install step at all.
+      #
       # Two separate invocations, not one "-pl services/catalog-service,services/customer-service"
-      # call: every other CI job in this repo builds exactly one service per mvn invocation, and
-      # combining two sibling modules in a single -pl list is a pattern this repo's CI had never
-      # exercised before this branch. That combined form reproducibly triggered a Maven plugin
-      # classloader conflict on this project's GitHub Actions runner specifically (a
-      # ClassCastException between two different copies of org.apache.httpcomponents:httpclient
-      # classes, loaded into two different plugin ClassRealms), never reproducible locally under
-      # any tested configuration, including a genuinely fresh, isolated local repository. Splitting
-      # back into the repo's established one-module-per-invocation pattern avoids it.
+      # call: every other CI job in this repo builds exactly one service per mvn invocation.
       - name: Install catalog-service contract stub
-        run: mvn -B -pl services/catalog-service -am install -DskipTests
+        run: mvn -B -pl services/catalog-service -am install -DskipTests -Dspring-boot.repackage.skip=true
 
       - name: Install customer-service contract stub
-        run: mvn -B -pl services/customer-service -am install -DskipTests
+        run: mvn -B -pl services/customer-service -am install -DskipTests -Dspring-boot.repackage.skip=true
 
       - name: Build and test order-service
         run: mvn -B -pl services/order-service -am test
