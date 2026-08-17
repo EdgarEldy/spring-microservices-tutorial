@@ -57,10 +57,10 @@ jobs:
       # Two separate invocations, not one "-pl services/catalog-service,services/customer-service"
       # call: every other CI job in this repo builds exactly one service per mvn invocation.
       - name: Install catalog-service contract stub
-        run: mvn -B -pl services/catalog-service -am install -DskipTests -Dspring-boot.repackage.skip=true
+        run: ./mvnw -B -pl services/catalog-service -am install -DskipTests -Dspring-boot.repackage.skip=true
 
       - name: Install customer-service contract stub
-        run: mvn -B -pl services/customer-service -am install -DskipTests -Dspring-boot.repackage.skip=true
+        run: ./mvnw -B -pl services/customer-service -am install -DskipTests -Dspring-boot.repackage.skip=true
 
       - name: Build and test order-service
-        run: mvn -B -pl services/order-service -am test
+        run: ./mvnw -B -pl services/order-service -am test
