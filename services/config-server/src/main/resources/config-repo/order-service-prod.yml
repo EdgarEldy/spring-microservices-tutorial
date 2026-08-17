@@ -30,7 +30,7 @@ management:
   endpoints:
     web:
       exposure:
-        include: health
+        include: health,circuitbreakers
 
 # Deliberately no default here: a prod deployment without JWT_SECRET set must fail
 # at startup (see JwtService, @Value("${jwt.secret}") with no default) rather than
