@@ -34,4 +34,4 @@ jobs:
           cache: maven
 
       - name: Build and test config-server
-        run: mvn -B -pl services/config-server -am test
+        run: ./mvnw -B -pl services/config-server -am test
