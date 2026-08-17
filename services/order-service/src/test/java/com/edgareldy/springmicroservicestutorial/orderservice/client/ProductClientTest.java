@@ -32,9 +32,9 @@ import org.springframework.test.context.TestPropertySource;
  * against a real (stubbed) server rather than a Mockito mock of the interface: that
  * {@code ApiResponse<ProductResponse>} deserializes correctly from a genuine 200 response, and
  * that a real 404 response genuinely surfaces as {@code FeignException.NotFound} (the
- * exception type {@code OrderServiceImpl.resolveProduct} pattern-matches on), not just
- * assumed. Backs the README's "WireMock stubs for ProductClient/CustomerClient (success and
- * failure)" test requirement.
+ * exception type {@code ProductClientFallbackFactory} pattern-matches on, see
+ * {@code feature/resilience}), not just assumed. Backs the README's "WireMock stubs for
+ * ProductClient/CustomerClient (success and failure)" test requirement.
  * <p>
  * Uses a minimal, hand-picked {@code @SpringBootTest(classes = ...)} context rather than the
  * full {@code OrderServiceApplication} one: {@code @EnableAutoConfiguration} alone (no

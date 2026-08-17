@@ -734,10 +734,10 @@ Adds fault tolerance to `order-service`'s synchronous calls.
 
 ### Tasks
 
-- [ ] `resilience4j-spring-boot3` dependency, circuit breaker configuration around `ProductClient`/`CustomerClient`
-- [ ] Fallback methods (`client/fallback/`) returning a clear "product/customer service unavailable" business error instead of the order creation hanging or throwing an unhandled exception
-- [ ] A deliberately induced failure test: stop `catalog-service` in the test setup, verify the circuit breaker opens after the configured failure threshold and the fallback is used
-- [ ] Actuator endpoint exposing circuit breaker state (`/actuator/circuitbreakers`)
+- [x] `resilience4j-spring-boot3` dependency, circuit breaker configuration around `ProductClient`/`CustomerClient`
+- [x] Fallback methods (`client/fallback/`) returning a clear "product/customer service unavailable" business error instead of the order creation hanging or throwing an unhandled exception
+- [x] A deliberately induced failure test: stop `catalog-service` in the test setup, verify the circuit breaker opens after the configured failure threshold and the fallback is used
+- [x] Actuator endpoint exposing circuit breaker state (`/actuator/circuitbreakers`)
 
 ## feature/contract-testing (bonus)
 

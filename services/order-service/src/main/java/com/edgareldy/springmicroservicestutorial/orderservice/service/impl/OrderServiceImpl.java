@@ -1,6 +1,5 @@
 package com.edgareldy.springmicroservicestutorial.orderservice.service.impl;
 
-import com.edgareldy.springmicroservicestutorial.commonlib.exception.BusinessRuleException;
 import com.edgareldy.springmicroservicestutorial.commonlib.exception.ResourceNotFoundException;
 import com.edgareldy.springmicroservicestutorial.orderservice.client.CustomerClient;
 import com.edgareldy.springmicroservicestutorial.orderservice.client.ProductClient;
@@ -18,7 +17,6 @@ import com.edgareldy.springmicroservicestutorial.orderservice.mapper.OrderMapper
 import com.edgareldy.springmicroservicestutorial.orderservice.repository.IdempotencyKeyRepository;
 import com.edgareldy.springmicroservicestutorial.orderservice.repository.OrderRepository;
 import com.edgareldy.springmicroservicestutorial.orderservice.service.OrderService;
-import feign.FeignException;
 import java.time.Instant;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
@@ -178,24 +176,17 @@ public class OrderServiceImpl implements OrderService {
         orderRepository.save(order);
     }
 
+    // No try/catch here (see feature/resilience): ProductClientFallbackFactory/
+    // CustomerClientFallbackFactory now own the FeignException -> ResourceNotFoundException/
+    // BusinessRuleException translation, invoked by the Resilience4j circuit breaker
+    // wrapping every call (spring.cloud.openfeign.circuitbreaker.enabled=true). A plain FeignException never
+    // reaches this class any more, whether the circuit is open or the call itself failed.
     private ProductResponse resolveProduct(Long productId) {
-        try {
-            return productClient.getProduct(productId).data();
-        } catch (FeignException.NotFound ex) {
-            throw new ResourceNotFoundException("No product found with id " + productId);
-        } catch (FeignException ex) {
-            throw new BusinessRuleException("Product service unavailable");
-        }
+        return productClient.getProduct(productId).data();
     }
 
     private CustomerResponse resolveCustomer(Long customerId) {
-        try {
-            return customerClient.getCustomer(customerId).data();
-        } catch (FeignException.NotFound ex) {
-            throw new ResourceNotFoundException("No customer found with id " + customerId);
-        } catch (FeignException ex) {
-            throw new BusinessRuleException("Customer service unavailable");
-        }
+        return customerClient.getCustomer(customerId).data();
     }
 
     private void publishAfterCommit(Runnable action) {

@@ -8,7 +8,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.edgareldy.springmicroservicestutorial.commonlib.dto.ApiResponse;
-import com.edgareldy.springmicroservicestutorial.commonlib.exception.BusinessRuleException;
 import com.edgareldy.springmicroservicestutorial.commonlib.exception.ResourceNotFoundException;
 import com.edgareldy.springmicroservicestutorial.orderservice.client.CustomerClient;
 import com.edgareldy.springmicroservicestutorial.orderservice.client.ProductClient;
@@ -165,24 +164,32 @@ class OrderServiceImplTest {
         verify(orderRepository, never()).save(any());
     }
 
+    // create_product*/create_customer* below assert a raw FeignException.NotFound/
+    // ServiceUnavailable propagates unchanged (see feature/resilience): OrderServiceImpl no
+    // longer translates it into ResourceNotFoundException/BusinessRuleException itself, that
+    // responsibility moved to ProductClientFallbackFactory/CustomerClientFallbackFactory
+    // (see their own dedicated unit tests), which only run for a real Feign client wrapped by
+    // the Resilience4j circuit breaker - a plain Mockito mock of ProductClient/CustomerClient,
+    // as used throughout this test class, never goes through that fallback at all.
+
     @Test
-    void create_productNotFound_throwsResourceNotFoundExceptionAndNeverSaves() {
+    void create_productNotFound_propagatesFeignExceptionAndNeverSaves() {
         when(idempotencyKeyRepository.findByIdempotencyKey("key-1")).thenReturn(Optional.empty());
         when(customerClient.getCustomer(1L)).thenReturn(ApiResponse.success(customer(), "ok"));
         when(productClient.getProduct(1L)).thenThrow(notFound());
 
-        assertThatExceptionOfType(ResourceNotFoundException.class)
+        assertThatExceptionOfType(FeignException.NotFound.class)
                 .isThrownBy(() -> orderService.create(newRequest(), "key-1"));
 
         verify(orderRepository, never()).save(any());
     }
 
     @Test
-    void create_customerNotFound_throwsResourceNotFoundExceptionAndNeverSaves() {
+    void create_customerNotFound_propagatesFeignExceptionAndNeverSaves() {
         when(idempotencyKeyRepository.findByIdempotencyKey("key-1")).thenReturn(Optional.empty());
         when(customerClient.getCustomer(1L)).thenThrow(notFound());
 
-        assertThatExceptionOfType(ResourceNotFoundException.class)
+        assertThatExceptionOfType(FeignException.NotFound.class)
                 .isThrownBy(() -> orderService.create(newRequest(), "key-1"));
 
         verify(productClient, never()).getProduct(any());
@@ -190,23 +197,23 @@ class OrderServiceImplTest {
     }
 
     @Test
-    void create_productServiceUnavailable_throwsBusinessRuleExceptionAndNeverSaves() {
+    void create_productServiceUnavailable_propagatesFeignExceptionAndNeverSaves() {
         when(idempotencyKeyRepository.findByIdempotencyKey("key-1")).thenReturn(Optional.empty());
         when(customerClient.getCustomer(1L)).thenReturn(ApiResponse.success(customer(), "ok"));
         when(productClient.getProduct(1L)).thenThrow(serviceUnavailable());
 
-        assertThatExceptionOfType(BusinessRuleException.class)
+        assertThatExceptionOfType(FeignException.ServiceUnavailable.class)
                 .isThrownBy(() -> orderService.create(newRequest(), "key-1"));
 
         verify(orderRepository, never()).save(any());
     }
 
     @Test
-    void create_customerServiceUnavailable_throwsBusinessRuleExceptionAndNeverSaves() {
+    void create_customerServiceUnavailable_propagatesFeignExceptionAndNeverSaves() {
         when(idempotencyKeyRepository.findByIdempotencyKey("key-1")).thenReturn(Optional.empty());
         when(customerClient.getCustomer(1L)).thenThrow(serviceUnavailable());
 
-        assertThatExceptionOfType(BusinessRuleException.class)
+        assertThatExceptionOfType(FeignException.ServiceUnavailable.class)
                 .isThrownBy(() -> orderService.create(newRequest(), "key-1"));
 
         verify(productClient, never()).getProduct(any());
