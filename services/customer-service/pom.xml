@@ -277,6 +277,34 @@
                 <groupId>org.springframework.cloud</groupId>
                 <artifactId>spring-cloud-contract-maven-plugin</artifactId>
                 <version>5.0.3</version>
+                <!-- Removing <extensions>true</extensions> (see comment above) stopped this
+                     plugin's legacy dependency chain from loading for reactor builds that
+                     never touch this module, but the same ClassCastException (org.apache.
+                     http.impl.client.BasicAuthCache / org.apache.http.client.AuthCache
+                     across two different ClassRealms) still happened for builds that DO
+                     build this module, since org.apache.maven.shared:maven-shared-incremental
+                     (used only for this plugin's optional incremental/staleness checks,
+                     already forced off via incrementalContractTests=false below) pulls in
+                     the entire ancient org.apache.maven:maven-core:2.2.1 API, which itself
+                     depends on org.apache.maven.wagon:wagon-http:1.0-beta-6, loading a
+                     second, classloader-distinct copy of the httpclient classes alongside
+                     the modern org.apache.httpcomponents:httpclient:4.5.14 Maven's own
+                     resolver already uses. Excluding it removes that entire legacy chain
+                     (confirmed via a scratch project's dependency:tree) without affecting
+                     any of the three goals actually used below. -->
+                <dependencies>
+                    <dependency>
+                        <groupId>org.apache.maven.shared</groupId>
+                        <artifactId>maven-shared-incremental</artifactId>
+                        <version>1.1</version>
+                        <exclusions>
+                            <exclusion>
+                                <groupId>org.apache.maven</groupId>
+                                <artifactId>maven-core</artifactId>
+                            </exclusion>
+                        </exclusions>
+                    </dependency>
+                </dependencies>
                 <configuration>
                     <baseClassForTests>com.edgareldy.springmicroservicestutorial.customerservice.contract.CustomerContractBase</baseClassForTests>
                     <!-- GenerateTestsMojo's "up to date" fast path (default true) skips
