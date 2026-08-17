@@ -33,5 +33,15 @@ jobs:
           java-version: '17'
           cache: maven
 
+      # order-service's ProductClientContractTest/CustomerClientContractTest (feature/contract-testing)
+      # consume catalog-service's/customer-service's stub jars via spring-cloud-contract-stub-runner
+      # in LOCAL mode, resolved from this runner's own local Maven repository. This tutorial has no
+      # remote Nexus/Artifactory publishing those jars, so this job builds and installs them itself
+      # first. Tests are skipped here: each producer's own CI job (ci-catalog-service.yml,
+      # ci-customer-service.yml) already runs its contract-verification test against its real
+      # controller, re-running it again from a consumer's pipeline would be redundant.
+      - name: Install catalog-service and customer-service contract stubs
+        run: mvn -B -pl services/catalog-service,services/customer-service -am install -DskipTests
+
       - name: Build and test order-service
         run: mvn -B -pl services/order-service -am test
