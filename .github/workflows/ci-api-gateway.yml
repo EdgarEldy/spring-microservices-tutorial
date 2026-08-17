@@ -34,4 +34,4 @@ jobs:
           cache: maven
 
       - name: Build and test api-gateway
-        run: mvn -B -pl services/api-gateway -am test
+        run: ./mvnw -B -pl services/api-gateway -am test
