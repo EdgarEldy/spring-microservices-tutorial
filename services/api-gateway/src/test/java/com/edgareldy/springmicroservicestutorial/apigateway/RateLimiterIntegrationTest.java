@@ -98,7 +98,7 @@ class RateLimiterIntegrationTest {
     }
 
     @Test
-    void requestRateLimiter_pastBurstCapacity_returns429() {
+    void _01_ShouldReturn429_WhenRequestsExceedBurstCapacity() {
         // Fires several rapid requests rather than asserting the 2nd one alone trips the
         // limit: with replenishRate=1/burstCapacity=1, the very first request already
         // exhausts the bucket, so the 2nd should normally be the one rejected, but the Lua

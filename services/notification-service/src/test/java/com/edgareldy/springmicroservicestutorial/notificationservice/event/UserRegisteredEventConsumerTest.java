@@ -26,7 +26,7 @@ class UserRegisteredEventConsumerTest {
     private EmailNotificationService emailNotificationService;
 
     @Test
-    void onUserRegistered_sendsActivationEmailToTheEventsAddress() {
+    void _01_ShouldSendActivationEmailToEventAddress_WhenUserIsRegistered() {
         UserRegisteredEventConsumer consumer = new UserRegisteredEventConsumer(emailNotificationService);
         UserRegisteredEvent event = new UserRegisteredEvent(1L, "ada@example.com", "Ada", "activation-token");
 
