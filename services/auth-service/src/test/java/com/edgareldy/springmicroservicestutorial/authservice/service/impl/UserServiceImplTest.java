@@ -73,7 +73,7 @@ class UserServiceImplTest {
             new RegisterRequest("Ada", "Lovelace", "ada@example.com", "raw-password");
 
     @Test
-    void createUser_encodesPasswordAndPersistsDisabledNonLockedUser() {
+    void _01_ShouldEncodePasswordAndPersistDisabledUnlockedUser_WhenUserIsCreated() {
         when(userRepository.existsByEmailIgnoreCase("ada@example.com")).thenReturn(false);
         when(passwordEncoder.encode("raw-password")).thenReturn("encoded-password");
         when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
@@ -91,7 +91,7 @@ class UserServiceImplTest {
     }
 
     @Test
-    void createUser_emailAlreadyInUse_throwsBusinessRuleExceptionAndNeverSaves() {
+    void _02_ShouldThrowBusinessRuleExceptionAndNeverSave_WhenEmailIsAlreadyInUse() {
         when(userRepository.existsByEmailIgnoreCase("ada@example.com")).thenReturn(true);
 
         assertThatExceptionOfType(BusinessRuleException.class)
@@ -102,7 +102,7 @@ class UserServiceImplTest {
     }
 
     @Test
-    void findByEmail_found_returnsUser() {
+    void _03_ShouldReturnUser_WhenEmailIsFound() {
         User user = User.builder().id(1L).email("ada@example.com").build();
         when(userRepository.findByEmailIgnoreCase("ada@example.com")).thenReturn(Optional.of(user));
 
@@ -110,7 +110,7 @@ class UserServiceImplTest {
     }
 
     @Test
-    void findByEmail_notFound_throwsResourceNotFoundException() {
+    void _04_ShouldThrowResourceNotFoundException_WhenEmailIsNotFound() {
         when(userRepository.findByEmailIgnoreCase("nobody@example.com")).thenReturn(Optional.empty());
 
         assertThatExceptionOfType(ResourceNotFoundException.class)
@@ -118,7 +118,7 @@ class UserServiceImplTest {
     }
 
     @Test
-    void findById_found_returnsUser() {
+    void _05_ShouldReturnUser_WhenIdIsFound() {
         User user = User.builder().id(1L).build();
         when(userRepository.findById(1L)).thenReturn(Optional.of(user));
 
@@ -126,7 +126,7 @@ class UserServiceImplTest {
     }
 
     @Test
-    void findById_notFound_throwsResourceNotFoundException() {
+    void _06_ShouldThrowResourceNotFoundException_WhenIdIsNotFound() {
         when(userRepository.findById(99L)).thenReturn(Optional.empty());
 
         assertThatExceptionOfType(ResourceNotFoundException.class)
@@ -134,7 +134,7 @@ class UserServiceImplTest {
     }
 
     @Test
-    void enableAccount_setsEnabledTrueAndSaves() {
+    void _07_ShouldSetEnabledTrueAndSave_WhenAccountIsEnabled() {
         User user = User.builder().id(1L).enabled(false).build();
         when(userRepository.findById(1L)).thenReturn(Optional.of(user));
         when(userRepository.save(user)).thenReturn(user);
@@ -146,7 +146,7 @@ class UserServiceImplTest {
     }
 
     @Test
-    void updatePassword_encodesAndSavesNewPassword() {
+    void _08_ShouldEncodeAndSaveNewPassword_WhenPasswordIsUpdated() {
         User user = User.builder().id(1L).password("old-encoded").build();
         when(userRepository.findById(1L)).thenReturn(Optional.of(user));
         when(passwordEncoder.encode("new-raw-password")).thenReturn("new-encoded");
@@ -159,7 +159,7 @@ class UserServiceImplTest {
     }
 
     @Test
-    void updateProfile_updatesNamesAndSaves() {
+    void _09_ShouldUpdateNamesAndSave_WhenProfileIsUpdated() {
         User user = User.builder().id(1L).firstName("Ada").lastName("Lovelace").build();
         when(userRepository.findById(1L)).thenReturn(Optional.of(user));
         when(userRepository.save(user)).thenReturn(user);
@@ -172,7 +172,7 @@ class UserServiceImplTest {
     }
 
     @Test
-    void updateProfile_notFound_throwsResourceNotFoundExceptionAndNeverSaves() {
+    void _10_ShouldThrowResourceNotFoundExceptionAndNeverSave_WhenUpdatedUserIsNotFound() {
         when(userRepository.findById(99L)).thenReturn(Optional.empty());
 
         assertThatExceptionOfType(ResourceNotFoundException.class)
@@ -182,7 +182,7 @@ class UserServiceImplTest {
     }
 
     @Test
-    void toResponse_mapsFieldsAndFlattensRoleNames() {
+    void _11_ShouldMapFieldsAndFlattenRoleNames_WhenUserIsConvertedToResponse() {
         Role adminRole = Role.builder().id(1L).roleName("ADMIN").permissions(Set.of()).build();
         Role userRole = Role.builder().id(2L).roleName("USER").permissions(Set.of()).build();
         User user = User.builder()
@@ -207,7 +207,7 @@ class UserServiceImplTest {
     }
 
     @Test
-    void existsByEmail_delegatesToRepository() {
+    void _12_ShouldDelegateToRepository_WhenEmailExistenceIsChecked() {
         when(userRepository.existsByEmailIgnoreCase("ada@example.com")).thenReturn(true);
         when(userRepository.existsByEmailIgnoreCase(eq("nobody@example.com"))).thenReturn(false);
 

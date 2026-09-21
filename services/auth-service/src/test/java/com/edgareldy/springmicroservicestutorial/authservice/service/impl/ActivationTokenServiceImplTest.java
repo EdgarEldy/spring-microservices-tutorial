@@ -46,7 +46,7 @@ class ActivationTokenServiceImplTest {
     private ActivationTokenServiceImpl activationTokenService;
 
     @Test
-    void generate_createsTokenExpiring24HoursFromNow() {
+    void _01_ShouldCreateTokenExpiringIn24Hours_WhenTokenIsGenerated() {
         User user = User.builder().id(1L).email("ada@example.com").build();
         when(secureTokenGenerator.generate()).thenReturn("raw-token");
         when(activationTokenRepository.save(any(ActivationToken.class)))
@@ -66,7 +66,7 @@ class ActivationTokenServiceImplTest {
     }
 
     @Test
-    void validate_validUnusedUnexpiredToken_marksValidatedAndReturnsUser() {
+    void _02_ShouldMarkValidatedAndReturnUser_WhenTokenIsValidUnusedAndUnexpired() {
         User user = User.builder().id(1L).email("ada@example.com").build();
         ActivationToken token = ActivationToken.builder()
                 .id(1L)
@@ -89,7 +89,7 @@ class ActivationTokenServiceImplTest {
     }
 
     @Test
-    void validate_tokenNotFound_throwsInvalidTokenException() {
+    void _03_ShouldThrowInvalidTokenException_WhenTokenIsNotFound() {
         when(activationTokenRepository.findByToken("missing")).thenReturn(Optional.empty());
 
         assertThatExceptionOfType(InvalidTokenException.class)
@@ -99,7 +99,7 @@ class ActivationTokenServiceImplTest {
     }
 
     @Test
-    void validate_alreadyValidatedToken_throwsInvalidTokenExceptionAndNeverSavesAgain() {
+    void _04_ShouldThrowInvalidTokenExceptionAndNeverSave_WhenTokenIsAlreadyValidated() {
         ActivationToken token = ActivationToken.builder()
                 .id(1L)
                 .token("raw-token")
@@ -116,7 +116,7 @@ class ActivationTokenServiceImplTest {
     }
 
     @Test
-    void validate_expiredToken_throwsInvalidTokenExceptionAndNeverSaves() {
+    void _05_ShouldThrowInvalidTokenExceptionAndNeverSave_WhenTokenIsExpired() {
         ActivationToken token = ActivationToken.builder()
                 .id(1L)
                 .token("raw-token")

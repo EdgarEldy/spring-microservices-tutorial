@@ -55,7 +55,7 @@ class ProductRepositoryTest {
     }
 
     @Test
-    void save_persistsProductWithMandatoryCategoryForeignKey() {
+    void _01_ShouldPersistProductWithCategoryForeignKey_WhenProductIsSaved() {
         Category category = persistCategory("Books");
 
         Product saved = productRepository.save(newProduct(category, "Clean Code", 39.90));
@@ -66,7 +66,7 @@ class ProductRepositoryTest {
     }
 
     @Test
-    void findByCategoryId_paginated_excludesProductsFromOtherCategories() {
+    void _02_ShouldExcludeProductsFromOtherCategories_WhenFindingByCategoryIdPaginated() {
         Category books = persistCategory("Books");
         Category electronics = persistCategory("Electronics");
         productRepository.save(newProduct(books, "Clean Code", 39.90));
@@ -83,7 +83,7 @@ class ProductRepositoryTest {
     }
 
     @Test
-    void findById_entityGraphLoadsCategoryEagerlyAfterFlushAndClear() {
+    void _03_ShouldLoadCategoryEagerly_WhenFindingByIdWithEntityGraphAfterFlushAndClear() {
         Category category = persistCategory("Books");
         Product product = productRepository.save(newProduct(category, "Clean Code", 39.90));
 
@@ -104,14 +104,14 @@ class ProductRepositoryTest {
     }
 
     @Test
-    void findById_absentId_returnsEmptyOptional() {
+    void _04_ShouldReturnEmptyOptional_WhenIdIsAbsent() {
         Optional<Product> found = productRepository.findById(999_999L);
 
         assertThat(found).isEmpty();
     }
 
     @Test
-    void persistAndFlush_zeroOrNegativeUnitPrice_violatesDatabaseCheckConstraint() {
+    void _05_ShouldViolateCheckConstraint_WhenUnitPriceIsZero() {
         // Product carries no @Positive/@DecimalMin at the entity level (only
         // ProductRequest does, at the API boundary), so persisting via
         // EntityManager directly bypasses any Jakarta Bean Validation and
@@ -128,7 +128,7 @@ class ProductRepositoryTest {
     }
 
     @Test
-    void persistAndFlush_negativeUnitPrice_violatesDatabaseCheckConstraint() {
+    void _06_ShouldViolateCheckConstraint_WhenUnitPriceIsNegative() {
         Category category = persistCategory("Books");
         Product negativePriced = newProduct(category, "Broken Price", -10.0);
 

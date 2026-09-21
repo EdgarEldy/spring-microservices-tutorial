@@ -113,7 +113,7 @@ class NotificationServiceKafkaIntegrationTest {
     }
 
     @Test
-    void orderCreatedEvent_nominal_sendsEmailAndPublishesOrderConfirmedEvent() {
+    void _01_ShouldSendEmailAndPublishOrderConfirmedEvent_WhenOrderCreatedEventIsNominal() {
         kafkaTemplate.send("order-events", "1", new OrderCreatedEvent(1L, 1L, 1L, 2, 79.80));
 
         ConsumerRecord<String, String> record = KafkaTestUtils.getSingleRecord(
@@ -125,7 +125,7 @@ class NotificationServiceKafkaIntegrationTest {
     }
 
     @Test
-    void orderCreatedEvent_simulatedFailureProductId_skipsEmailAndPublishesNotificationFailedEvent() {
+    void _02_ShouldSkipEmailAndPublishNotificationFailedEvent_WhenProductIdSimulatesFailure() {
         kafkaTemplate.send("order-events", "2", new OrderCreatedEvent(2L, 1L, 999L, 1, 39.90));
 
         ConsumerRecord<String, String> record = KafkaTestUtils.getSingleRecord(
@@ -139,14 +139,14 @@ class NotificationServiceKafkaIntegrationTest {
     }
 
     @Test
-    void userRegisteredEvent_triggersActivationEmail() {
+    void _03_ShouldSendActivationEmail_WhenUserRegisteredEventIsConsumed() {
         kafkaTemplate.send("auth-events", "1", new UserRegisteredEvent(1L, "ada@example.com", "Ada", "activation-token"));
 
         verify(emailNotificationService, timeout(10000)).send(org.mockito.ArgumentMatchers.eq("ada@example.com"), any(), any());
     }
 
     @Test
-    void passwordResetRequestedEvent_triggersResetEmail() {
+    void _04_ShouldSendResetEmail_WhenPasswordResetRequestedEventIsConsumed() {
         kafkaTemplate.send("auth-events", "1", new PasswordResetRequestedEvent(1L, "ada@example.com", "reset-token"));
 
         verify(emailNotificationService, timeout(10000)).send(org.mockito.ArgumentMatchers.eq("ada@example.com"), any(), any());

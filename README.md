@@ -20,6 +20,8 @@ This document is the **complete specification** of the project: it is meant to b
 - [Branching strategy](#branching-strategy)
 - [Repository structure](#repository-structure)
 - [Standard response format](#standard-response-format)
+- [Testing strategy](#testing-strategy)
+  - [Test naming convention](#test-naming-convention)
 - [feature/common-lib](#featurecommon-lib)
 - [feature/infrastructure](#featureinfrastructure)
 - [feature/auth-service](#featureauth-service)
@@ -562,6 +564,33 @@ public record ApiResponse<T>(
 ```
 
 `api-gateway` passes each service's `ApiResponse<T>` straight through unmodified - it never rewraps or reshapes response bodies, only routes, authenticates, and rate-limits.
+
+## Testing strategy
+
+Every service ships its tests before its Pull Request is opened, at the layers that apply to what the service does. Each service is tested in isolation from its dependencies, and CI builds and tests each service independently.
+
+| Layer | Tool | What it verifies |
+|---|---|---|
+| Repository | `@DataJpaTest` + Testcontainers (real PostgreSQL) | Derived queries, constraints and mappings against a real schema |
+| Service | JUnit 5 + Mockito | Business rules and orchestration, with every repository and client dependency mocked |
+| Controller | `@WebMvcTest` | HTTP status codes, payload shape (`ApiResponse<T>`) and error mapping, with the service layer mocked |
+| Client | `WireMock` | Feign clients against stubbed downstream services, including failures and fallbacks |
+| Messaging | Embedded Kafka / Testcontainers Kafka | Event publication after commit, consumption and choreography |
+| Gateway | JUnit 5 + Spring Test | Routing, JWT validation and rate limiting |
+
+### Test naming convention
+
+Every test method, at every layer and in every module, is named `_NN_Should<Outcome>_When<Condition>`: a two-digit, zero-padded sequence number (the order of the methods within the class, restarting at `_01_` in each class; JUnit does not enforce it, it is kept consistent by convention), followed by what is expected, followed by the condition that produces it.
+
+```java
+@Test
+void _01_ShouldReturnProduct_WhenProductExists() { ... }
+
+@Test
+void _02_ShouldReturnNotFound_WhenProductDoesNotExist() { ... }
+```
+
+No other naming style (`shouldX()`, `testX()`, `givenX_whenY_thenZ()`, `handleResourceNotFound_mapsTo404WithFailedEnvelope()`) is used anywhere in this project's test suite. This applies to test methods only, not to `@BeforeEach`/`@AfterEach` helpers.
 
 ## feature/common-lib
 
