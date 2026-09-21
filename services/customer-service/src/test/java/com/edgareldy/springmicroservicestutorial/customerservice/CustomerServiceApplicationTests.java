@@ -36,7 +36,7 @@ import org.springframework.test.context.ActiveProfiles;
 class CustomerServiceApplicationTests {
 
     @Test
-    void contextLoads(ApplicationContext context) {
+    void _01_ShouldLoadApplicationContext_WhenApplicationStarts(ApplicationContext context) {
         assertThat(context).isNotNull();
         assertThat(context.containsBean("jwtService")).isTrue();
     }
