@@ -30,7 +30,7 @@ class ProductClientFallbackFactoryTest {
     private final ProductClientFallbackFactory factory = new ProductClientFallbackFactory();
 
     @Test
-    void create_notFoundCause_returnsClientThatThrowsResourceNotFoundException() {
+    void _01_ShouldReturnClientThrowingResourceNotFoundException_WhenCauseIsNotFound() {
         ProductClient fallback = factory.create(notFound());
 
         assertThatExceptionOfType(ResourceNotFoundException.class)
@@ -39,14 +39,14 @@ class ProductClientFallbackFactoryTest {
     }
 
     @Test
-    void create_anyOtherCause_returnsClientThatThrowsBusinessRuleException() {
+    void _02_ShouldReturnClientThrowingBusinessRuleException_WhenCauseIsAnyOther() {
         ProductClient fallback = factory.create(serviceUnavailable());
 
         assertThatExceptionOfType(BusinessRuleException.class).isThrownBy(() -> fallback.getProduct(1L));
     }
 
     @Test
-    void create_nonFeignCause_stillReturnsClientThatThrowsBusinessRuleException() {
+    void _03_ShouldReturnClientThrowingBusinessRuleException_WhenCauseIsNotFeign() {
         // The circuit being OPEN (no HTTP call attempted at all) surfaces as a
         // resilience4j-internal exception, not a FeignException; this must still be treated
         // as "service unavailable", never mistaken for a 404.
