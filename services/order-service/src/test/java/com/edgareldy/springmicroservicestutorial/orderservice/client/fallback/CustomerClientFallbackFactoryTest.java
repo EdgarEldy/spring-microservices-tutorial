@@ -26,7 +26,7 @@ class CustomerClientFallbackFactoryTest {
     private final CustomerClientFallbackFactory factory = new CustomerClientFallbackFactory();
 
     @Test
-    void create_notFoundCause_returnsClientThatThrowsResourceNotFoundException() {
+    void _01_ShouldReturnClientThrowingResourceNotFoundException_WhenCauseIsNotFound() {
         CustomerClient fallback = factory.create(notFound());
 
         assertThatExceptionOfType(ResourceNotFoundException.class)
@@ -35,7 +35,7 @@ class CustomerClientFallbackFactoryTest {
     }
 
     @Test
-    void create_anyOtherCause_returnsClientThatThrowsBusinessRuleException() {
+    void _02_ShouldReturnClientThrowingBusinessRuleException_WhenCauseIsAnyOther() {
         CustomerClient fallback = factory.create(unauthorized());
 
         assertThatExceptionOfType(BusinessRuleException.class).isThrownBy(() -> fallback.getCustomer(1L));
