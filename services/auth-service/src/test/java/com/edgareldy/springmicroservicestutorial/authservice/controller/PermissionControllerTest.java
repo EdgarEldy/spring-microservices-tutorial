@@ -13,7 +13,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.edgareldy.springmicroservicestutorial.authservice.config.MethodSecurityConfig;
 import com.edgareldy.springmicroservicestutorial.authservice.dto.permission.PermissionRequest;
 import com.edgareldy.springmicroservicestutorial.authservice.dto.permission.PermissionResponse;
-import com.edgareldy.springmicroservicestutorial.authservice.entity.Permission;
 import com.edgareldy.springmicroservicestutorial.authservice.repository.BlacklistedTokenRepository;
 import com.edgareldy.springmicroservicestutorial.authservice.security.CustomPermissionEvaluator;
 import com.edgareldy.springmicroservicestutorial.authservice.security.JwtService;
@@ -77,19 +76,14 @@ class PermissionControllerTest {
     @MockitoBean
     private UserDetailsServiceImpl userDetailsService;
 
-    private static Permission permission(long id, String resource, String action) {
-        return Permission.builder().id(id).resource(resource).action(action).build();
-    }
-
     private static PermissionResponse response(long id, String resource, String action) {
         return new PermissionResponse(id, resource, action);
     }
 
     @Test
     @WithMockUser(roles = "ADMIN")
-    void findAllReturns200ForAdmin() throws Exception {
-        when(permissionService.findAll()).thenReturn(List.of(permission(1L, "PRODUCT", "READ")));
-        when(permissionService.toResponse(any())).thenReturn(response(1L, "PRODUCT", "READ"));
+    void _01_ShouldReturn200_WhenAdminListsPermissions() throws Exception {
+        when(permissionService.findAll()).thenReturn(List.of(response(1L, "PRODUCT", "READ")));
 
         mockMvc.perform(get("/api/v1/permissions"))
                 .andExpect(status().isOk())
@@ -98,7 +92,7 @@ class PermissionControllerTest {
     }
 
     @Test
-    void findAllReturnsUnauthorizedWithoutAuthentication() throws Exception {
+    void _02_ShouldReturn401_WhenListingPermissionsWithoutAuthentication() throws Exception {
         mockMvc.perform(get("/api/v1/permissions"))
                 .andExpect(status().isUnauthorized());
 
@@ -107,7 +101,7 @@ class PermissionControllerTest {
 
     @Test
     @WithMockUser(roles = "USER")
-    void findAllReturnsForbiddenForNonAdmin() throws Exception {
+    void _03_ShouldReturn403_WhenNonAdminListsPermissions() throws Exception {
         mockMvc.perform(get("/api/v1/permissions"))
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.success").value(false));
@@ -117,11 +111,9 @@ class PermissionControllerTest {
 
     @Test
     @WithMockUser(roles = "ADMIN")
-    void createReturns201ForAdmin() throws Exception {
+    void _04_ShouldReturn201_WhenAdminCreatesPermission() throws Exception {
         PermissionRequest request = new PermissionRequest("ORDER", "WRITE");
-        Permission created = permission(2L, "ORDER", "WRITE");
-        when(permissionService.create(any())).thenReturn(created);
-        when(permissionService.toResponse(created)).thenReturn(response(2L, "ORDER", "WRITE"));
+        when(permissionService.create(any())).thenReturn(response(2L, "ORDER", "WRITE"));
 
         mockMvc.perform(post("/api/v1/permissions")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -133,7 +125,7 @@ class PermissionControllerTest {
 
     @Test
     @WithMockUser(roles = "USER")
-    void createReturnsForbiddenForNonAdmin() throws Exception {
+    void _05_ShouldReturn403_WhenNonAdminCreatesPermission() throws Exception {
         PermissionRequest request = new PermissionRequest("ORDER", "WRITE");
 
         mockMvc.perform(post("/api/v1/permissions")
@@ -147,7 +139,7 @@ class PermissionControllerTest {
 
     @Test
     @WithMockUser(roles = "ADMIN")
-    void deleteReturns200ForAdminWithApiResponseBody() throws Exception {
+    void _06_ShouldReturn200WithApiResponseBody_WhenAdminDeletesPermission() throws Exception {
         mockMvc.perform(delete("/api/v1/permissions/1"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true));
@@ -157,7 +149,7 @@ class PermissionControllerTest {
 
     @Test
     @WithMockUser(roles = "USER")
-    void deleteReturnsForbiddenForNonAdmin() throws Exception {
+    void _07_ShouldReturn403_WhenNonAdminDeletesPermission() throws Exception {
         mockMvc.perform(delete("/api/v1/permissions/1"))
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.success").value(false));
@@ -167,7 +159,7 @@ class PermissionControllerTest {
 
     @Test
     @WithMockUser(roles = "ADMIN")
-    void deleteReturns404WhenMissing() throws Exception {
+    void _08_ShouldReturn404_WhenDeletedPermissionIsMissing() throws Exception {
         org.mockito.Mockito.doThrow(new ResourceNotFoundException("Permission not found with id 99"))
                 .when(permissionService).delete(99L);
 

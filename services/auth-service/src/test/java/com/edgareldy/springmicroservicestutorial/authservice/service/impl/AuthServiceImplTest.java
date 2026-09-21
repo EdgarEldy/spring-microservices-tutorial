@@ -149,7 +149,7 @@ class AuthServiceImplTest {
     // --- register() ---------------------------------------------------
 
     @Test
-    void register_nominal_createsUserAndActivationTokenAndReturnsResponse() {
+    void _01_ShouldCreateUserAndActivationTokenAndReturnResponse_WhenRegistrationIsNominal() {
         RegisterRequest request = new RegisterRequest("Ada", "Lovelace", "ada@example.com", "raw-password");
         User user = User.builder().id(1L).firstName("Ada").lastName("Lovelace").email("ada@example.com").build();
         ActivationToken activationToken = ActivationToken.builder().token("activation-token").build();
@@ -167,7 +167,7 @@ class AuthServiceImplTest {
     }
 
     @Test
-    void register_publishesUserRegisteredEvent_onlyAfterTransactionCommits() {
+    void _02_ShouldPublishUserRegisteredEvent_WhenTransactionCommits() {
         RegisterRequest request = new RegisterRequest("Ada", "Lovelace", "ada@example.com", "raw-password");
         User user = User.builder().id(1L).firstName("Ada").lastName("Lovelace").email("ada@example.com").build();
         ActivationToken activationToken = ActivationToken.builder().token("activation-token").build();
@@ -203,7 +203,7 @@ class AuthServiceImplTest {
     }
 
     @Test
-    void register_rolledBackTransaction_neverPublishesUserRegisteredEvent() {
+    void _03_ShouldNeverPublishUserRegisteredEvent_WhenTransactionIsRolledBack() {
         RegisterRequest request = new RegisterRequest("Ada", "Lovelace", "ada@example.com", "raw-password");
         User user = User.builder().id(1L).firstName("Ada").lastName("Lovelace").email("ada@example.com").build();
         ActivationToken activationToken = ActivationToken.builder().token("activation-token").build();
@@ -231,7 +231,7 @@ class AuthServiceImplTest {
     // --- activateAccount() ---------------------------------------------------
 
     @Test
-    void activateAccount_validatesTokenAndEnablesOwningAccount() {
+    void _04_ShouldValidateTokenAndEnableAccount_WhenAccountIsActivated() {
         User user = User.builder().id(1L).build();
         when(activationTokenService.validate("raw-token")).thenReturn(user);
 
@@ -244,7 +244,7 @@ class AuthServiceImplTest {
     // --- login() ---------------------------------------------------
 
     @Test
-    void login_delegatesToAuthenticationManagerAndReturnsSignedToken() {
+    void _05_ShouldDelegateToAuthenticationManagerAndReturnSignedToken_WhenLoginIsCalled() {
         LoginRequest request = new LoginRequest("ada@example.com", "raw-password");
         User principal = User.builder().id(1L).email("ada@example.com").build();
         Authentication authentication = new UsernamePasswordAuthenticationToken(principal, null);
@@ -268,7 +268,7 @@ class AuthServiceImplTest {
     // --- logout() ---------------------------------------------------
 
     @Test
-    void logout_extractsClaimsAndBlacklistsToken() {
+    void _06_ShouldExtractClaimsAndBlacklistToken_WhenLogoutIsCalled() {
         String rawToken = "raw-jwt";
         User user = User.builder().id(1L).email("ada@example.com").build();
         Instant expiresAt = Instant.now().plusSeconds(3600);
@@ -286,7 +286,7 @@ class AuthServiceImplTest {
     // --- me() ---------------------------------------------------
 
     @Test
-    void me_readsAuthenticatedEmailFromSecurityContextAndReturnsProfile() {
+    void _07_ShouldReturnProfileFromSecurityContext_WhenMeIsCalled() {
         User user = User.builder().id(1L).email("ada@example.com").build();
         UserResponse response = new UserResponse(1L, "Ada", "Lovelace", "ada@example.com", true, false, List.of());
         Authentication authentication = new UsernamePasswordAuthenticationToken(
@@ -305,7 +305,7 @@ class AuthServiceImplTest {
     // --- forgotPassword() ---------------------------------------------------
 
     @Test
-    void forgotPassword_publishesPasswordResetRequestedEvent_onlyAfterTransactionCommits() {
+    void _08_ShouldPublishPasswordResetRequestedEvent_WhenTransactionCommits() {
         User user = User.builder().id(1L).email("ada@example.com").build();
         PasswordResetToken resetToken = PasswordResetToken.builder().token("reset-token").build();
 
@@ -337,7 +337,7 @@ class AuthServiceImplTest {
     }
 
     @Test
-    void forgotPassword_rolledBackTransaction_neverPublishesPasswordResetRequestedEvent() {
+    void _09_ShouldNeverPublishPasswordResetRequestedEvent_WhenTransactionIsRolledBack() {
         User user = User.builder().id(1L).email("ada@example.com").build();
         PasswordResetToken resetToken = PasswordResetToken.builder().token("reset-token").build();
 
@@ -360,7 +360,7 @@ class AuthServiceImplTest {
     // --- resetPassword() ---------------------------------------------------
 
     @Test
-    void resetPassword_consumesTokenAndUpdatesOwningUsersPassword() {
+    void _10_ShouldConsumeTokenAndUpdatePassword_WhenPasswordIsReset() {
         User user = User.builder().id(1L).build();
         when(passwordResetTokenService.validateAndConsume("raw-token")).thenReturn(user);
 

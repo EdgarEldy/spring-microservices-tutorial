@@ -11,28 +11,40 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.edgareldy.springmicroservicestutorial.authservice.dto.auth.RegisterRequest;
+import com.edgareldy.springmicroservicestutorial.authservice.dto.user.UpdateProfileRequest;
 import com.edgareldy.springmicroservicestutorial.authservice.dto.user.UserResponse;
 import com.edgareldy.springmicroservicestutorial.authservice.entity.Permission;
 import com.edgareldy.springmicroservicestutorial.authservice.entity.Role;
 import com.edgareldy.springmicroservicestutorial.authservice.entity.User;
+import com.edgareldy.springmicroservicestutorial.authservice.mapper.UserMapperImpl;
 import com.edgareldy.springmicroservicestutorial.authservice.repository.UserRepository;
 import com.edgareldy.springmicroservicestutorial.commonlib.exception.BusinessRuleException;
 import com.edgareldy.springmicroservicestutorial.commonlib.exception.ResourceNotFoundException;
 import java.util.Optional;
 import java.util.Set;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.test.util.ReflectionTestUtils;
 
 /**
  * Pure Mockito unit tests for {@link UserServiceImpl}: no Spring context, no
  * database, {@link UserRepository} and {@link PasswordEncoder} are mocked so
  * only this class' own branching is exercised (persistence itself is already
  * covered by {@code UserRepositoryTest}, backed by Testcontainers PostgreSQL).
+ * The MapStruct-generated {@link UserMapperImpl} is instantiated for real
+ * (not mocked) and wired manually rather than via {@code @InjectMocks}:
+ * mocking a trivial generated mapper would add nothing and would require
+ * stubbing every field of every {@code toResponse} call, so this class is
+ * exercised as it will actually run in production. {@code UserMapperImpl}
+ * declares its {@link PasswordEncoder} as an {@code @Autowired protected}
+ * field (MapStruct's field-injection style for abstract-class mappers), so
+ * it is wired with the same mock via {@link ReflectionTestUtils#setField}
+ * rather than a constructor argument.
  * <p>
  * Created by Edgar Muhamyangabo on 8/15/26
  * Author : Edgar Muhamyangabo
@@ -48,14 +60,20 @@ class UserServiceImplTest {
     @Mock
     private PasswordEncoder passwordEncoder;
 
-    @InjectMocks
     private UserServiceImpl userService;
+
+    @BeforeEach
+    void setUp() {
+        UserMapperImpl userMapper = new UserMapperImpl();
+        ReflectionTestUtils.setField(userMapper, "passwordEncoder", passwordEncoder);
+        userService = new UserServiceImpl(userRepository, passwordEncoder, userMapper);
+    }
 
     private final RegisterRequest request =
             new RegisterRequest("Ada", "Lovelace", "ada@example.com", "raw-password");
 
     @Test
-    void createUser_encodesPasswordAndPersistsDisabledNonLockedUser() {
+    void _01_ShouldEncodePasswordAndPersistDisabledUnlockedUser_WhenUserIsCreated() {
         when(userRepository.existsByEmailIgnoreCase("ada@example.com")).thenReturn(false);
         when(passwordEncoder.encode("raw-password")).thenReturn("encoded-password");
         when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
@@ -73,7 +91,7 @@ class UserServiceImplTest {
     }
 
     @Test
-    void createUser_emailAlreadyInUse_throwsBusinessRuleExceptionAndNeverSaves() {
+    void _02_ShouldThrowBusinessRuleExceptionAndNeverSave_WhenEmailIsAlreadyInUse() {
         when(userRepository.existsByEmailIgnoreCase("ada@example.com")).thenReturn(true);
 
         assertThatExceptionOfType(BusinessRuleException.class)
@@ -84,7 +102,7 @@ class UserServiceImplTest {
     }
 
     @Test
-    void findByEmail_found_returnsUser() {
+    void _03_ShouldReturnUser_WhenEmailIsFound() {
         User user = User.builder().id(1L).email("ada@example.com").build();
         when(userRepository.findByEmailIgnoreCase("ada@example.com")).thenReturn(Optional.of(user));
 
@@ -92,7 +110,7 @@ class UserServiceImplTest {
     }
 
     @Test
-    void findByEmail_notFound_throwsResourceNotFoundException() {
+    void _04_ShouldThrowResourceNotFoundException_WhenEmailIsNotFound() {
         when(userRepository.findByEmailIgnoreCase("nobody@example.com")).thenReturn(Optional.empty());
 
         assertThatExceptionOfType(ResourceNotFoundException.class)
@@ -100,7 +118,7 @@ class UserServiceImplTest {
     }
 
     @Test
-    void findById_found_returnsUser() {
+    void _05_ShouldReturnUser_WhenIdIsFound() {
         User user = User.builder().id(1L).build();
         when(userRepository.findById(1L)).thenReturn(Optional.of(user));
 
@@ -108,7 +126,7 @@ class UserServiceImplTest {
     }
 
     @Test
-    void findById_notFound_throwsResourceNotFoundException() {
+    void _06_ShouldThrowResourceNotFoundException_WhenIdIsNotFound() {
         when(userRepository.findById(99L)).thenReturn(Optional.empty());
 
         assertThatExceptionOfType(ResourceNotFoundException.class)
@@ -116,7 +134,7 @@ class UserServiceImplTest {
     }
 
     @Test
-    void enableAccount_setsEnabledTrueAndSaves() {
+    void _07_ShouldSetEnabledTrueAndSave_WhenAccountIsEnabled() {
         User user = User.builder().id(1L).enabled(false).build();
         when(userRepository.findById(1L)).thenReturn(Optional.of(user));
         when(userRepository.save(user)).thenReturn(user);
@@ -128,7 +146,7 @@ class UserServiceImplTest {
     }
 
     @Test
-    void updatePassword_encodesAndSavesNewPassword() {
+    void _08_ShouldEncodeAndSaveNewPassword_WhenPasswordIsUpdated() {
         User user = User.builder().id(1L).password("old-encoded").build();
         when(userRepository.findById(1L)).thenReturn(Optional.of(user));
         when(passwordEncoder.encode("new-raw-password")).thenReturn("new-encoded");
@@ -141,7 +159,30 @@ class UserServiceImplTest {
     }
 
     @Test
-    void toResponse_mapsFieldsAndFlattensRoleNames() {
+    void _09_ShouldUpdateNamesAndSave_WhenProfileIsUpdated() {
+        User user = User.builder().id(1L).firstName("Ada").lastName("Lovelace").build();
+        when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+        when(userRepository.save(user)).thenReturn(user);
+
+        User updated = userService.updateProfile(1L, new UpdateProfileRequest("Grace", "Hopper"));
+
+        assertThat(updated.getFirstName()).isEqualTo("Grace");
+        assertThat(updated.getLastName()).isEqualTo("Hopper");
+        verify(userRepository).save(user);
+    }
+
+    @Test
+    void _10_ShouldThrowResourceNotFoundExceptionAndNeverSave_WhenUpdatedUserIsNotFound() {
+        when(userRepository.findById(99L)).thenReturn(Optional.empty());
+
+        assertThatExceptionOfType(ResourceNotFoundException.class)
+                .isThrownBy(() -> userService.updateProfile(99L, new UpdateProfileRequest("Grace", "Hopper")));
+
+        verify(userRepository, never()).save(any());
+    }
+
+    @Test
+    void _11_ShouldMapFieldsAndFlattenRoleNames_WhenUserIsConvertedToResponse() {
         Role adminRole = Role.builder().id(1L).roleName("ADMIN").permissions(Set.of()).build();
         Role userRole = Role.builder().id(2L).roleName("USER").permissions(Set.of()).build();
         User user = User.builder()
@@ -166,7 +207,7 @@ class UserServiceImplTest {
     }
 
     @Test
-    void existsByEmail_delegatesToRepository() {
+    void _12_ShouldDelegateToRepository_WhenEmailExistenceIsChecked() {
         when(userRepository.existsByEmailIgnoreCase("ada@example.com")).thenReturn(true);
         when(userRepository.existsByEmailIgnoreCase(eq("nobody@example.com"))).thenReturn(false);
 
