@@ -73,7 +73,7 @@ class CategoryControllerTest {
     }
 
     @Test
-    void findAllIsPublicAndReturnsPagedApiResponse() throws Exception {
+    void _01_ShouldReturnPagedApiResponseWithoutAuthentication_WhenCategoriesAreListed() throws Exception {
         when(categoryService.findAll(any()))
                 .thenReturn(new PageImpl<>(List.of(response(1L, "Books")), PageRequest.of(0, 10), 1));
 
@@ -86,7 +86,7 @@ class CategoryControllerTest {
 
     @Test
     @WithMockUser(roles = "ADMIN")
-    void createReturns201ForAdmin() throws Exception {
+    void _02_ShouldReturn201_WhenAdminCreatesCategory() throws Exception {
         CategoryRequest request = new CategoryRequest("Garden");
         when(categoryService.create(any())).thenReturn(response(2L, "Garden"));
 
@@ -105,7 +105,7 @@ class CategoryControllerTest {
      */
     @Test
     @WithMockUser(roles = "USER")
-    void createReturnsForbiddenForNonAdmin() throws Exception {
+    void _03_ShouldReturn403_WhenNonAdminCreatesCategory() throws Exception {
         CategoryRequest request = new CategoryRequest("Garden");
 
         mockMvc.perform(post("/api/v1/catalog/categories")
@@ -123,7 +123,7 @@ class CategoryControllerTest {
      * {@code AuthenticationCredentialsNotFoundException} to 401.
      */
     @Test
-    void createReturnsUnauthorizedWithoutAuthentication() throws Exception {
+    void _04_ShouldReturn401_WhenCategoryIsCreatedWithoutAuthentication() throws Exception {
         CategoryRequest request = new CategoryRequest("Garden");
 
         mockMvc.perform(post("/api/v1/catalog/categories")
@@ -142,7 +142,7 @@ class CategoryControllerTest {
      */
     @Test
     @WithMockUser(roles = "ADMIN")
-    void createRejectsInvalidPayload() throws Exception {
+    void _05_ShouldRejectCreation_WhenCategoryPayloadIsInvalid() throws Exception {
         CategoryRequest blankName = new CategoryRequest(" ");
 
         mockMvc.perform(post("/api/v1/catalog/categories")
