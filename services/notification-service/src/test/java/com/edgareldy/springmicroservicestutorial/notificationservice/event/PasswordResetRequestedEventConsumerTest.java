@@ -26,7 +26,7 @@ class PasswordResetRequestedEventConsumerTest {
     private EmailNotificationService emailNotificationService;
 
     @Test
-    void onPasswordResetRequested_sendsResetEmailToTheEventsAddress() {
+    void _01_ShouldSendResetEmailToEventAddress_WhenPasswordResetIsRequested() {
         PasswordResetRequestedEventConsumer consumer = new PasswordResetRequestedEventConsumer(emailNotificationService);
         PasswordResetRequestedEvent event = new PasswordResetRequestedEvent(1L, "ada@example.com", "reset-token");
 

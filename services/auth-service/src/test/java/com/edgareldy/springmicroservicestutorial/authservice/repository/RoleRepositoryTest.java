@@ -48,7 +48,7 @@ class RoleRepositoryTest {
     private EntityManager entityManager;
 
     @Test
-    void save_and_findByRoleNameIgnoreCase_matchesRegardlessOfCase() {
+    void _01_ShouldFindRoleRegardlessOfCase_WhenRoleIsSavedThenSearchedByName() {
         roleRepository.save(Role.builder().roleName("Admin").build());
 
         Optional<Role> found = roleRepository.findByRoleNameIgnoreCase("ADMIN");
@@ -58,7 +58,7 @@ class RoleRepositoryTest {
     }
 
     @Test
-    void existsByRoleNameIgnoreCase_trueWhenPresentRegardlessOfCase_falseOtherwise() {
+    void _02_ShouldReturnTrueOnlyWhenPresentRegardlessOfCase_WhenCheckingExistenceByRoleName() {
         roleRepository.save(Role.builder().roleName("CUSTOMER").build());
 
         assertThat(roleRepository.existsByRoleNameIgnoreCase("customer")).isTrue();
@@ -66,7 +66,7 @@ class RoleRepositoryTest {
     }
 
     @Test
-    void save_secondRoleWithSameNameDifferentCase_violatesUniqueIndex() {
+    void _03_ShouldViolateUniqueIndex_WhenSecondRoleHasSameNameInDifferentCase() {
         roleRepository.saveAndFlush(Role.builder().roleName("moderator").build());
 
         assertThatExceptionOfType(DataIntegrityViolationException.class)
@@ -74,7 +74,7 @@ class RoleRepositoryTest {
     }
 
     @Test
-    void findByRoleNameIgnoreCase_entityGraphLoadsPermissionsEagerly() {
+    void _04_ShouldLoadPermissionsEagerly_WhenFindingRoleByNameWithEntityGraph() {
         Permission permission = permissionRepository.save(
                 Permission.builder().resource("ORDER").action("READ").build());
         roleRepository.save(Role.builder().roleName("support").permissions(Set.of(permission)).build());

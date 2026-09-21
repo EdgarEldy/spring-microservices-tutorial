@@ -90,7 +90,7 @@ class RoleControllerTest {
 
     @Test
     @WithMockUser(roles = "ADMIN")
-    void findAllReturns200ForAdmin() throws Exception {
+    void _01_ShouldReturn200_WhenAdminListsRoles() throws Exception {
         when(roleService.findAll()).thenReturn(List.of(response(1L, "ADMIN")));
 
         mockMvc.perform(get("/api/v1/roles"))
@@ -100,7 +100,7 @@ class RoleControllerTest {
     }
 
     @Test
-    void findAllReturnsUnauthorizedWithoutAuthentication() throws Exception {
+    void _02_ShouldReturn401_WhenListingRolesWithoutAuthentication() throws Exception {
         mockMvc.perform(get("/api/v1/roles"))
                 .andExpect(status().isUnauthorized());
 
@@ -109,7 +109,7 @@ class RoleControllerTest {
 
     @Test
     @WithMockUser(roles = "USER")
-    void findAllReturnsForbiddenForNonAdmin() throws Exception {
+    void _03_ShouldReturn403_WhenNonAdminListsRoles() throws Exception {
         mockMvc.perform(get("/api/v1/roles"))
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.success").value(false));
@@ -119,7 +119,7 @@ class RoleControllerTest {
 
     @Test
     @WithMockUser(roles = "ADMIN")
-    void createReturns201ForAdmin() throws Exception {
+    void _04_ShouldReturn201_WhenAdminCreatesRole() throws Exception {
         RoleRequest request = new RoleRequest("MODERATOR");
         when(roleService.create(any())).thenReturn(response(2L, "MODERATOR"));
 
@@ -132,7 +132,7 @@ class RoleControllerTest {
 
     @Test
     @WithMockUser(roles = "USER")
-    void createReturnsForbiddenForNonAdmin() throws Exception {
+    void _05_ShouldReturn403_WhenNonAdminCreatesRole() throws Exception {
         RoleRequest request = new RoleRequest("MODERATOR");
 
         mockMvc.perform(post("/api/v1/roles")
@@ -146,7 +146,7 @@ class RoleControllerTest {
 
     @Test
     @WithMockUser(roles = "ADMIN")
-    void deleteReturns200ForAdminWithApiResponseBody() throws Exception {
+    void _06_ShouldReturn200WithApiResponseBody_WhenAdminDeletesRole() throws Exception {
         mockMvc.perform(delete("/api/v1/roles/1"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true));
@@ -156,7 +156,7 @@ class RoleControllerTest {
 
     @Test
     @WithMockUser(roles = "USER")
-    void deleteReturnsForbiddenForNonAdmin() throws Exception {
+    void _07_ShouldReturn403_WhenNonAdminDeletesRole() throws Exception {
         mockMvc.perform(delete("/api/v1/roles/1"))
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.success").value(false));
@@ -166,7 +166,7 @@ class RoleControllerTest {
 
     @Test
     @WithMockUser(roles = "ADMIN")
-    void deleteReturns404WhenMissing() throws Exception {
+    void _08_ShouldReturn404_WhenDeletedRoleIsMissing() throws Exception {
         org.mockito.Mockito.doThrow(new ResourceNotFoundException("Role not found with id 99"))
                 .when(roleService).delete(99L);
 
@@ -176,7 +176,7 @@ class RoleControllerTest {
 
     @Test
     @WithMockUser(roles = "ADMIN")
-    void addPermissionReturns200ForAdmin() throws Exception {
+    void _09_ShouldReturn200_WhenAdminAddsPermissionToRole() throws Exception {
         when(roleService.addPermission(1L, 2L)).thenReturn(response(1L, "ADMIN"));
 
         mockMvc.perform(post("/api/v1/roles/1/permissions/2"))
@@ -186,7 +186,7 @@ class RoleControllerTest {
 
     @Test
     @WithMockUser(roles = "USER")
-    void addPermissionReturnsForbiddenForNonAdmin() throws Exception {
+    void _10_ShouldReturn403_WhenNonAdminAddsPermissionToRole() throws Exception {
         mockMvc.perform(post("/api/v1/roles/1/permissions/2"))
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.success").value(false));
@@ -196,7 +196,7 @@ class RoleControllerTest {
 
     @Test
     @WithMockUser(roles = "ADMIN")
-    void removePermissionReturns200ForAdmin() throws Exception {
+    void _11_ShouldReturn200_WhenAdminRemovesPermissionFromRole() throws Exception {
         when(roleService.removePermission(1L, 2L)).thenReturn(response(1L, "ADMIN"));
 
         mockMvc.perform(delete("/api/v1/roles/1/permissions/2"))
@@ -208,7 +208,7 @@ class RoleControllerTest {
 
     @Test
     @WithMockUser(roles = "USER")
-    void removePermissionReturnsForbiddenForNonAdmin() throws Exception {
+    void _12_ShouldReturn403_WhenNonAdminRemovesPermissionFromRole() throws Exception {
         mockMvc.perform(delete("/api/v1/roles/1/permissions/2"))
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.success").value(false));

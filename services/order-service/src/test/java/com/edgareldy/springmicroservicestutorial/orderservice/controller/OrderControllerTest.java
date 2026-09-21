@@ -79,7 +79,7 @@ class OrderControllerTest {
     }
 
     @Test
-    void findByIdReturns200WhenAuthenticated() throws Exception {
+    void _01_ShouldReturn200_WhenOrderIsFoundByAuthenticatedCaller() throws Exception {
         when(orderService.findById(1L)).thenReturn(detailResponse(1L));
 
         mockMvc.perform(get("/api/v1/orders/1").with(user("test")))
@@ -90,7 +90,7 @@ class OrderControllerTest {
     }
 
     @Test
-    void findByIdReturnsUnauthorizedWithoutAuthentication() throws Exception {
+    void _02_ShouldReturn401_WhenOrderIsQueriedWithoutAuthentication() throws Exception {
         mockMvc.perform(get("/api/v1/orders/1"))
                 .andExpect(status().isUnauthorized());
 
@@ -98,7 +98,7 @@ class OrderControllerTest {
     }
 
     @Test
-    void findByIdReturns404WhenMissing() throws Exception {
+    void _03_ShouldReturn404_WhenOrderIsMissing() throws Exception {
         when(orderService.findById(99L)).thenThrow(new ResourceNotFoundException("No order found with id 99"));
 
         mockMvc.perform(get("/api/v1/orders/99").with(user("test")))
@@ -107,7 +107,7 @@ class OrderControllerTest {
     }
 
     @Test
-    void createReturns201WhenAuthenticatedWithIdempotencyKeyHeader() throws Exception {
+    void _04_ShouldReturn201_WhenAuthenticatedCallerCreatesOrderWithIdempotencyKeyHeader() throws Exception {
         OrderRequest request = new OrderRequest(1L, 1L, 2);
         when(orderService.create(any(), org.mockito.ArgumentMatchers.eq("key-1"))).thenReturn(response(1L));
 
@@ -122,7 +122,7 @@ class OrderControllerTest {
     }
 
     @Test
-    void createReturnsBadRequestWithoutIdempotencyKeyHeader() throws Exception {
+    void _05_ShouldReturn400_WhenIdempotencyKeyHeaderIsMissing() throws Exception {
         OrderRequest request = new OrderRequest(1L, 1L, 2);
 
         mockMvc.perform(post("/api/v1/orders")
@@ -135,7 +135,7 @@ class OrderControllerTest {
     }
 
     @Test
-    void createReturnsUnauthorizedWithoutAuthentication() throws Exception {
+    void _06_ShouldReturn401_WhenOrderIsCreatedWithoutAuthentication() throws Exception {
         OrderRequest request = new OrderRequest(1L, 1L, 2);
 
         mockMvc.perform(post("/api/v1/orders")
@@ -148,7 +148,7 @@ class OrderControllerTest {
     }
 
     @Test
-    void createRejectsInvalidPayload() throws Exception {
+    void _07_ShouldRejectCreation_WhenOrderPayloadIsInvalid() throws Exception {
         OrderRequest invalid = new OrderRequest(null, 1L, 2);
 
         mockMvc.perform(post("/api/v1/orders")
@@ -163,7 +163,7 @@ class OrderControllerTest {
     }
 
     @Test
-    void findAllReturns200WhenAuthenticated() throws Exception {
+    void _08_ShouldReturn200_WhenAuthenticatedCallerListsOrders() throws Exception {
         when(orderService.findAll(any())).thenReturn(new PageImpl<>(List.of(response(1L)), PageRequest.of(0, 10), 1));
 
         mockMvc.perform(get("/api/v1/orders").with(user("test")))
@@ -173,7 +173,7 @@ class OrderControllerTest {
     }
 
     @Test
-    void findAllReturnsUnauthorizedWithoutAuthentication() throws Exception {
+    void _09_ShouldReturn401_WhenOrdersAreListedWithoutAuthentication() throws Exception {
         mockMvc.perform(get("/api/v1/orders"))
                 .andExpect(status().isUnauthorized());
 

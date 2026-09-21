@@ -46,7 +46,7 @@ class OrderRepositoryTest {
     }
 
     @Test
-    void save_persistsOrderWithGeneratedIdAndDefaultPendingStatus() {
+    void _01_ShouldPersistOrderWithGeneratedIdAndPendingStatus_WhenOrderIsSaved() {
         Order saved = orderRepository.save(newOrder(1L, 1L));
 
         assertThat(saved.getId()).isNotNull();
@@ -55,7 +55,7 @@ class OrderRepositoryTest {
     }
 
     @Test
-    void findAll_paginated_returnsOnlyRequestedPageAndCorrectTotal() {
+    void _02_ShouldReturnOnlyRequestedPageAndCorrectTotal_WhenFindingAllPaginated() {
         orderRepository.save(newOrder(1L, 1L));
         orderRepository.save(newOrder(1L, 2L));
         orderRepository.save(newOrder(2L, 1L));
@@ -68,7 +68,7 @@ class OrderRepositoryTest {
     }
 
     @Test
-    void save_statusExplicitlySet_persistsThatStatus() {
+    void _03_ShouldPersistGivenStatus_WhenStatusIsExplicitlySet() {
         Order order = newOrder(1L, 1L);
         order.setStatus(OrderStatus.CONFIRMED);
 

@@ -94,7 +94,7 @@ class ProductClientTest {
     }
 
     @Test
-    void getProduct_success_deserializesApiResponseEnvelopeAndProductResponse() {
+    void _01_ShouldDeserializeEnvelopeAndProductResponse_WhenProductIsFound() {
         wireMockServer.stubFor(get(urlEqualTo("/api/v1/catalog/products/1"))
                 .willReturn(okJson("""
                         {"success":true,"message":"Product retrieved","data":{"id":1,"productName":"Clean Code","unitPrice":39.90,"categoryId":1},"timestamp":"2026-08-16T00:00:00Z"}
@@ -109,7 +109,7 @@ class ProductClientTest {
     }
 
     @Test
-    void getProduct_notFound_throwsFeignExceptionNotFound() {
+    void _02_ShouldThrowFeignExceptionNotFound_WhenProductIsNotFound() {
         wireMockServer.stubFor(get(urlEqualTo("/api/v1/catalog/products/99"))
                 .willReturn(aResponse().withStatus(404).withHeader("Content-Type", "application/json")
                         .withBody("""
@@ -120,7 +120,7 @@ class ProductClientTest {
     }
 
     @Test
-    void getProduct_serverError_throwsFeignException() {
+    void _03_ShouldThrowFeignException_WhenServerErrorOccurs() {
         wireMockServer.stubFor(get(urlEqualTo("/api/v1/catalog/products/1"))
                 .willReturn(aResponse().withStatus(500)));
 

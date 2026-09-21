@@ -58,7 +58,7 @@ class CustomerRepositoryTest {
     }
 
     @Test
-    void save_persistsCustomerWithGeneratedId() {
+    void _01_ShouldPersistCustomerWithGeneratedId_WhenCustomerIsSaved() {
         Customer saved = customerRepository.save(newCustomer("ada@example.com"));
 
         assertThat(saved.getId()).isNotNull();
@@ -67,7 +67,7 @@ class CustomerRepositoryTest {
     }
 
     @Test
-    void findByEmailIgnoreCase_matchesRegardlessOfCase() {
+    void _02_ShouldMatchRegardlessOfCase_WhenFindingByEmail() {
         customerRepository.save(newCustomer("Ada@Example.com"));
 
         Optional<Customer> found = customerRepository.findByEmailIgnoreCase("ada@example.com");
@@ -77,7 +77,7 @@ class CustomerRepositoryTest {
     }
 
     @Test
-    void existsByEmailIgnoreCase_matchesRegardlessOfCase() {
+    void _03_ShouldMatchRegardlessOfCase_WhenCheckingExistenceByEmail() {
         customerRepository.save(newCustomer("Ada@Example.com"));
 
         assertThat(customerRepository.existsByEmailIgnoreCase("ada@example.com")).isTrue();
@@ -85,7 +85,7 @@ class CustomerRepositoryTest {
     }
 
     @Test
-    void save_duplicateEmailDifferentCase_violatesUniqueIndex() {
+    void _04_ShouldViolateUniqueIndex_WhenDuplicateEmailDiffersOnlyByCase() {
         customerRepository.save(newCustomer("Ada@Example.com"));
         customerRepository.flush();
 
@@ -97,7 +97,7 @@ class CustomerRepositoryTest {
     }
 
     @Test
-    void customerEntity_hasNoForeignKeyOrAssociationToAnotherServicesSchema() {
+    void _05_ShouldHaveNoForeignKeyToAnotherServiceSchema_WhenCustomerEntityIsInspected() {
         for (Field field : Customer.class.getDeclaredFields()) {
             assertThat(field.isAnnotationPresent(ManyToOne.class))
                     .as("%s must never be a @ManyToOne, userId stays a plain column", field.getName())

@@ -63,7 +63,7 @@ class UserRepositoryTest {
     }
 
     @Test
-    void save_and_findByEmailIgnoreCase_matchesRegardlessOfCase() {
+    void _01_ShouldFindUserRegardlessOfCase_WhenUserIsSavedThenSearchedByEmail() {
         userRepository.save(newUser("Ada.Lovelace@Example.com"));
 
         Optional<User> found = userRepository.findByEmailIgnoreCase("ada.lovelace@example.com");
@@ -73,7 +73,7 @@ class UserRepositoryTest {
     }
 
     @Test
-    void existsByEmailIgnoreCase_trueWhenPresentRegardlessOfCase_falseOtherwise() {
+    void _02_ShouldReturnTrueOnlyWhenPresentRegardlessOfCase_WhenCheckingExistenceByEmail() {
         userRepository.save(newUser("bob@example.com"));
 
         assertThat(userRepository.existsByEmailIgnoreCase("BOB@EXAMPLE.COM")).isTrue();
@@ -81,7 +81,7 @@ class UserRepositoryTest {
     }
 
     @Test
-    void save_secondUserWithSameEmailDifferentCase_violatesUniqueIndex() {
+    void _03_ShouldViolateUniqueIndex_WhenSecondUserHasSameEmailInDifferentCase() {
         userRepository.saveAndFlush(newUser("carol@example.com"));
 
         assertThatExceptionOfType(DataIntegrityViolationException.class)
@@ -89,7 +89,7 @@ class UserRepositoryTest {
     }
 
     @Test
-    void findByEmailIgnoreCase_entityGraphLoadsAuthoritiesEagerlyAfterSessionDetach() {
+    void _04_ShouldLoadAuthoritiesEagerly_WhenFindingUserByEmailWithEntityGraphAfterSessionDetach() {
         Permission permission = permissionRepository.save(
                 Permission.builder().resource("PRODUCT").action("WRITE").build());
         Role role = roleRepository.save(
