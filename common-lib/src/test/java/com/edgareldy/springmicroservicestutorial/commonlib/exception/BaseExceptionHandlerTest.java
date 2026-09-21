@@ -37,7 +37,7 @@ class BaseExceptionHandlerTest {
     private final TestExceptionHandler handler = new TestExceptionHandler();
 
     @Test
-    void handleResourceNotFound_mapsTo404WithFailedEnvelope() {
+    void _01_ShouldReturn404WithFailedEnvelope_WhenResourceNotFoundIsHandled() {
         ResourceNotFoundException ex = new ResourceNotFoundException("Product 42 not found");
 
         ResponseEntity<ApiResponse<Object>> response = handler.handleResourceNotFound(ex);
@@ -51,7 +51,7 @@ class BaseExceptionHandlerTest {
     }
 
     @Test
-    void handleBusinessRule_mapsTo400WithFailedEnvelope() {
+    void _02_ShouldReturn400WithFailedEnvelope_WhenBusinessRuleViolationIsHandled() {
         BusinessRuleException ex = new BusinessRuleException("Email already in use");
 
         ResponseEntity<ApiResponse<Object>> response = handler.handleBusinessRule(ex);
@@ -65,7 +65,7 @@ class BaseExceptionHandlerTest {
     }
 
     @Test
-    void handleUnexpected_mapsTo500WithFailedEnvelopeAndGenericMessage() {
+    void _03_ShouldReturn500WithGenericMessage_WhenUnexpectedExceptionIsHandled() {
         Exception ex = new IllegalStateException("Database connection pool exhausted");
 
         ResponseEntity<ApiResponse<Object>> response = handler.handleUnexpected(ex);
