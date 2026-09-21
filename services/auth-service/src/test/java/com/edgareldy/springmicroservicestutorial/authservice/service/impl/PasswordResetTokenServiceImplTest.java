@@ -62,7 +62,7 @@ class PasswordResetTokenServiceImplTest {
     private PasswordResetTokenServiceImpl passwordResetTokenService;
 
     @Test
-    void generate_createsPasswordResetTokenExpiring1HourFromNow() {
+    void _01_ShouldCreateTokenExpiringIn1Hour_WhenResetTokenIsGenerated() {
         User user = User.builder().id(1L).email("ada@example.com").build();
         when(secureTokenGenerator.generate()).thenReturn("raw-token");
         when(passwordResetTokenRepository.save(any(PasswordResetToken.class)))
@@ -80,7 +80,7 @@ class PasswordResetTokenServiceImplTest {
     }
 
     @Test
-    void validateAndConsume_validUnexpiredToken_deletesAndReturnsUser() {
+    void _02_ShouldDeleteAndReturnUser_WhenTokenIsValidAndUnexpired() {
         User user = User.builder().id(1L).email("ada@example.com").build();
         PasswordResetToken token = PasswordResetToken.builder()
                 .id(1L)
@@ -98,7 +98,7 @@ class PasswordResetTokenServiceImplTest {
     }
 
     @Test
-    void validateAndConsume_tokenNotFound_throwsInvalidTokenExceptionAndNeverDeletes() {
+    void _03_ShouldThrowInvalidTokenExceptionAndNeverDelete_WhenTokenIsNotFound() {
         when(passwordResetTokenRepository.findByToken("missing")).thenReturn(Optional.empty());
 
         assertThatExceptionOfType(InvalidTokenException.class)
@@ -108,7 +108,7 @@ class PasswordResetTokenServiceImplTest {
     }
 
     @Test
-    void validateAndConsume_expiredToken_deletesBeforeThrowing() {
+    void _04_ShouldDeleteBeforeThrowing_WhenTokenIsExpired() {
         PasswordResetToken token = PasswordResetToken.builder()
                 .id(1L)
                 .token("raw-token")
