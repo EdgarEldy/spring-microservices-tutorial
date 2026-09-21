@@ -55,7 +55,7 @@ class CustomerServiceImplTest {
     }
 
     @Test
-    void create_newEmail_persistsAndReturnsCustomer() {
+    void _01_ShouldPersistAndReturnCustomer_WhenEmailIsNew() {
         when(customerRepository.existsByEmailIgnoreCase("ada@example.com")).thenReturn(false);
         when(customerRepository.save(any(Customer.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
@@ -68,7 +68,7 @@ class CustomerServiceImplTest {
     }
 
     @Test
-    void create_duplicateEmail_throwsBusinessRuleExceptionAndNeverSaves() {
+    void _02_ShouldThrowBusinessRuleExceptionAndNeverSave_WhenEmailIsDuplicate() {
         when(customerRepository.existsByEmailIgnoreCase("ada@example.com")).thenReturn(true);
 
         assertThatExceptionOfType(BusinessRuleException.class)
@@ -78,7 +78,7 @@ class CustomerServiceImplTest {
     }
 
     @Test
-    void findById_found_returnsCustomerResponse() {
+    void _03_ShouldReturnCustomerResponse_WhenCustomerIsFound() {
         Customer customer = Customer.builder()
                 .id(1L)
                 .userId(1L)
@@ -97,7 +97,7 @@ class CustomerServiceImplTest {
     }
 
     @Test
-    void findById_notFound_throwsResourceNotFoundException() {
+    void _04_ShouldThrowResourceNotFoundException_WhenCustomerIsNotFound() {
         when(customerRepository.findById(99L)).thenReturn(Optional.empty());
 
         assertThatExceptionOfType(ResourceNotFoundException.class)
@@ -105,7 +105,7 @@ class CustomerServiceImplTest {
     }
 
     @Test
-    void update_existingCustomer_updatesEditableFieldsAndLeavesUserIdUntouched() {
+    void _05_ShouldUpdateEditableFieldsAndKeepUserId_WhenCustomerExists() {
         Customer customer = Customer.builder()
                 .id(1L)
                 .userId(1L)
@@ -130,7 +130,7 @@ class CustomerServiceImplTest {
     }
 
     @Test
-    void update_notFound_throwsResourceNotFoundExceptionAndNeverSaves() {
+    void _06_ShouldThrowResourceNotFoundExceptionAndNeverSave_WhenUpdatedCustomerIsNotFound() {
         when(customerRepository.findById(99L)).thenReturn(Optional.empty());
 
         CustomerUpdateRequest request =

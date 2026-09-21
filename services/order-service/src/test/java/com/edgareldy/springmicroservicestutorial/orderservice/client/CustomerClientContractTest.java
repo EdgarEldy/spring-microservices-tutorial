@@ -58,7 +58,7 @@ class CustomerClientContractTest {
     private CustomerClient customerClient;
 
     @Test
-    void getCustomer_success_deserializesApiResponseEnvelopeAndCustomerResponse() {
+    void _01_ShouldDeserializeEnvelopeAndCustomerResponse_WhenStubbedContractIsHonored() {
         ApiResponse<CustomerResponse> response = customerClient.getCustomer(1L);
 
         assertThat(response.success()).isTrue();

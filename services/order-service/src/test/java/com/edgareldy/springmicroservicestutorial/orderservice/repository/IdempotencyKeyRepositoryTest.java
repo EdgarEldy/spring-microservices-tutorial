@@ -48,7 +48,7 @@ class IdempotencyKeyRepositoryTest {
     }
 
     @Test
-    void findByIdempotencyKey_found_returnsTheMatchingKey() {
+    void _01_ShouldReturnMatchingKey_WhenIdempotencyKeyIsFound() {
         Order order = persistOrder();
         idempotencyKeyRepository.save(IdempotencyKey.builder()
                 .idempotencyKey("key-1")
@@ -63,12 +63,12 @@ class IdempotencyKeyRepositoryTest {
     }
 
     @Test
-    void findByIdempotencyKey_notFound_returnsEmpty() {
+    void _02_ShouldReturnEmpty_WhenIdempotencyKeyIsNotFound() {
         assertThat(idempotencyKeyRepository.findByIdempotencyKey("nonexistent")).isEmpty();
     }
 
     @Test
-    void save_duplicateIdempotencyKey_violatesUniqueConstraint() {
+    void _03_ShouldViolateUniqueConstraint_WhenIdempotencyKeyIsDuplicate() {
         Order firstOrder = persistOrder();
         idempotencyKeyRepository.save(IdempotencyKey.builder()
                 .idempotencyKey("key-1")

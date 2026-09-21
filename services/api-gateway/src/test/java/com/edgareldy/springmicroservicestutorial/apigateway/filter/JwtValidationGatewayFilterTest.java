@@ -51,7 +51,7 @@ class JwtValidationGatewayFilterTest {
 
     @ParameterizedTest
     @ValueSource(strings = {"/api/v1/auth/register", "/api/v1/auth/login", "/api/v1/auth/activate-account"})
-    void filter_eachOfTheThreeExemptedPublicPaths_bypassesValidationAndAlwaysForwards(String path) {
+    void _01_ShouldBypassValidationAndForward_WhenPathIsExemptedAndPublic(String path) {
         filter = new JwtValidationGatewayFilter(jwtService, objectMapper);
         ServerWebExchange exchange = MockServerWebExchange.from(MockServerHttpRequest.get(path).build());
         when(chain.filter(exchange)).thenReturn(Mono.empty());
@@ -71,7 +71,7 @@ class JwtValidationGatewayFilterTest {
                 "/api/v1/auth/forgot-password",
                 "/api/v1/auth/reset-password"
             })
-    void filter_protectedPathNoAuthorizationHeader_rejectsWithoutCallingChain(String path) {
+    void _02_ShouldRejectWithoutCallingChain_WhenProtectedPathHasNoAuthorizationHeader(String path) {
         filter = new JwtValidationGatewayFilter(jwtService, objectMapper);
         ServerWebExchange exchange = MockServerWebExchange.from(MockServerHttpRequest.get(path).build());
 
@@ -82,7 +82,7 @@ class JwtValidationGatewayFilterTest {
     }
 
     @Test
-    void filter_protectedPathInvalidToken_rejectsWithoutCallingChain() {
+    void _03_ShouldRejectWithoutCallingChain_WhenProtectedPathHasInvalidToken() {
         filter = new JwtValidationGatewayFilter(jwtService, objectMapper);
         ServerWebExchange exchange = MockServerWebExchange.from(
                 MockServerHttpRequest.get("/api/v1/orders").header("Authorization", "Bearer bad-token"));
@@ -95,7 +95,7 @@ class JwtValidationGatewayFilterTest {
     }
 
     @Test
-    void filter_protectedPathValidToken_forwardsToChain() {
+    void _04_ShouldForwardToChain_WhenProtectedPathHasValidToken() {
         filter = new JwtValidationGatewayFilter(jwtService, objectMapper);
         ServerWebExchange exchange = MockServerWebExchange.from(
                 MockServerHttpRequest.get("/api/v1/orders").header("Authorization", "Bearer good-token"));

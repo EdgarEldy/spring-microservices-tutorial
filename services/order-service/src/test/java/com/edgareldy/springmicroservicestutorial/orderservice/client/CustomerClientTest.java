@@ -81,7 +81,7 @@ class CustomerClientTest {
     }
 
     @Test
-    void getCustomer_notFound_throwsFeignExceptionNotFound() {
+    void _01_ShouldThrowFeignExceptionNotFound_WhenCustomerIsNotFound() {
         wireMockServer.stubFor(get(urlEqualTo("/api/v1/customers/99"))
                 .willReturn(aResponse().withStatus(404).withHeader("Content-Type", "application/json")
                         .withBody("""
@@ -92,7 +92,7 @@ class CustomerClientTest {
     }
 
     @Test
-    void getCustomer_unauthorized_throwsFeignException() {
+    void _02_ShouldThrowFeignException_WhenCallIsUnauthorized() {
         wireMockServer.stubFor(get(urlEqualTo("/api/v1/customers/1"))
                 .willReturn(aResponse().withStatus(401)));
 

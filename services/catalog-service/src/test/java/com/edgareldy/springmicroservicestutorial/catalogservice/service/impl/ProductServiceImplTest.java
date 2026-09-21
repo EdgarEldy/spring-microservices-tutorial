@@ -73,7 +73,7 @@ class ProductServiceImplTest {
     }
 
     @Test
-    void create_existingCategoryId_buildsProductAndSaves() {
+    void _01_ShouldBuildProductAndSave_WhenCategoryIdExists() {
         ProductRequest request = new ProductRequest("Clean Code", 39.90, 1L);
         Category category = category(1L);
         when(categoryRepository.findById(1L)).thenReturn(Optional.of(category));
@@ -91,7 +91,7 @@ class ProductServiceImplTest {
     }
 
     @Test
-    void create_nonExistentCategoryId_throwsResourceNotFoundExceptionAndNeverSaves() {
+    void _02_ShouldThrowResourceNotFoundExceptionAndNeverSave_WhenCategoryIdDoesNotExist() {
         ProductRequest request = new ProductRequest("Clean Code", 39.90, 99L);
         when(categoryRepository.findById(99L)).thenReturn(Optional.empty());
 
@@ -102,7 +102,7 @@ class ProductServiceImplTest {
     }
 
     @Test
-    void findAll_categoryIdProvided_delegatesToFindByCategoryId() {
+    void _03_ShouldDelegateToFindByCategoryId_WhenCategoryIdIsProvided() {
         Pageable pageable = PageRequest.of(0, 10);
         Product product = Product.builder().id(1L).category(category(1L)).productName("Clean Code").unitPrice(39.90).build();
         Page<Product> page = new PageImpl<>(List.of(product), pageable, 1);
@@ -116,7 +116,7 @@ class ProductServiceImplTest {
     }
 
     @Test
-    void findAll_noCategoryId_delegatesToFindAll() {
+    void _04_ShouldDelegateToFindAll_WhenNoCategoryIdIsProvided() {
         Pageable pageable = PageRequest.of(0, 10);
         Product product = Product.builder().id(1L).category(category(1L)).productName("Clean Code").unitPrice(39.90).build();
         Page<Product> page = new PageImpl<>(List.of(product), pageable, 1);
@@ -130,7 +130,7 @@ class ProductServiceImplTest {
     }
 
     @Test
-    void findById_found_returnsProductResponse() {
+    void _05_ShouldReturnProductResponse_WhenProductIsFound() {
         Product product = Product.builder().id(1L).category(category(1L)).productName("Clean Code").unitPrice(39.90).build();
         when(productRepository.findById(1L)).thenReturn(Optional.of(product));
 
@@ -138,7 +138,7 @@ class ProductServiceImplTest {
     }
 
     @Test
-    void findById_notFound_throwsResourceNotFoundException() {
+    void _06_ShouldThrowResourceNotFoundException_WhenProductIsNotFound() {
         when(productRepository.findById(99L)).thenReturn(Optional.empty());
 
         assertThatExceptionOfType(ResourceNotFoundException.class)
