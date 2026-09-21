@@ -51,7 +51,7 @@ class CategoryServiceImplTest {
     }
 
     @Test
-    void create_buildsCategoryFromRequestAndSaves() {
+    void _01_ShouldBuildCategoryFromRequestAndSave_WhenCategoryIsCreated() {
         CategoryRequest request = new CategoryRequest("Books");
         when(categoryRepository.save(any(Category.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
@@ -65,7 +65,7 @@ class CategoryServiceImplTest {
     }
 
     @Test
-    void findAll_delegatesToRepositoryWithSamePageable() {
+    void _02_ShouldDelegateToRepositoryWithSamePageable_WhenAllCategoriesAreRequested() {
         Pageable pageable = PageRequest.of(0, 10);
         Category category = Category.builder().id(1L).categoryName("Books").build();
         Page<Category> page = new PageImpl<>(List.of(category), pageable, 1);

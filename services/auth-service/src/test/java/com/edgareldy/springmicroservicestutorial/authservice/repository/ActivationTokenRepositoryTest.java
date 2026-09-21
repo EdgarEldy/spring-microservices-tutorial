@@ -53,7 +53,7 @@ class ActivationTokenRepositoryTest {
     }
 
     @Test
-    void findByToken_existingToken_returnsTokenWithAssociatedUser() {
+    void _01_ShouldReturnTokenWithAssociatedUser_WhenTokenExists() {
         User user = persistUser("grace@example.com");
         activationTokenRepository.save(ActivationToken.builder()
                 .user(user)
@@ -69,12 +69,12 @@ class ActivationTokenRepositoryTest {
     }
 
     @Test
-    void findByToken_unknownToken_returnsEmpty() {
+    void _02_ShouldReturnEmpty_WhenTokenIsUnknown() {
         assertThat(activationTokenRepository.findByToken("does-not-exist")).isEmpty();
     }
 
     @Test
-    void deleteAllByExpiresAtBefore_removesOnlyExpiredTokens() {
+    void _03_ShouldRemoveOnlyExpiredTokens_WhenDeletingByExpiresAtBefore() {
         User user = persistUser("alan@example.com");
         ActivationToken expired = activationTokenRepository.save(ActivationToken.builder()
                 .user(user)

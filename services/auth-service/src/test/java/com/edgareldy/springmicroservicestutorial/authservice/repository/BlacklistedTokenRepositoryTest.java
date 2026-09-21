@@ -52,7 +52,7 @@ class BlacklistedTokenRepositoryTest {
     }
 
     @Test
-    void existsByJti_trueWhenPresent_falseOtherwise() {
+    void _01_ShouldReturnTrueOnlyWhenPresent_WhenCheckingExistenceByJti() {
         User user = persistUser("margaret@example.com");
         blacklistedTokenRepository.save(BlacklistedToken.builder()
                 .user(user)
@@ -68,7 +68,7 @@ class BlacklistedTokenRepositoryTest {
     }
 
     @Test
-    void deleteAllByExpiresAtBefore_removesOnlyExpiredTokens() {
+    void _02_ShouldRemoveOnlyExpiredTokens_WhenDeletingByExpiresAtBefore() {
         User user = persistUser("hedy@example.com");
         BlacklistedToken expired = blacklistedTokenRepository.save(BlacklistedToken.builder()
                 .user(user)

@@ -37,7 +37,7 @@ import org.springframework.test.context.ActiveProfiles;
 class AuthServiceApplicationTests {
 
     @Test
-    void contextLoads(ApplicationContext context) {
+    void _01_ShouldLoadApplicationContext_WhenApplicationStarts(ApplicationContext context) {
         assertThat(context).isNotNull();
         assertThat(context.containsBean("kafkaTemplate")).isTrue();
     }
