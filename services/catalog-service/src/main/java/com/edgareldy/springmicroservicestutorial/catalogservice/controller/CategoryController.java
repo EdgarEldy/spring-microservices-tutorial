@@ -2,7 +2,6 @@ package com.edgareldy.springmicroservicestutorial.catalogservice.controller;
 
 import com.edgareldy.springmicroservicestutorial.catalogservice.dto.CategoryRequest;
 import com.edgareldy.springmicroservicestutorial.catalogservice.dto.CategoryResponse;
-import com.edgareldy.springmicroservicestutorial.catalogservice.entity.Category;
 import com.edgareldy.springmicroservicestutorial.catalogservice.service.CategoryService;
 import com.edgareldy.springmicroservicestutorial.commonlib.dto.ApiResponse;
 import com.edgareldy.springmicroservicestutorial.commonlib.dto.PageResponse;
@@ -41,12 +40,9 @@ public class CategoryController {
     @Operation(summary = "List categories", description = "Public, paginated list of every category")
     @GetMapping
     public ResponseEntity<ApiResponse<PageResponse<CategoryResponse>>> findAll(Pageable pageable) {
-        Page<Category> page = categoryService.findAll(pageable);
+        Page<CategoryResponse> page = categoryService.findAll(pageable);
         PageResponse<CategoryResponse> response = PageResponse.of(
-                page.getContent().stream().map(categoryService::toResponse).toList(),
-                page.getNumber(),
-                page.getSize(),
-                page.getTotalElements());
+                page.getContent(), page.getNumber(), page.getSize(), page.getTotalElements());
         return ResponseEntity.ok(ApiResponse.success(response, "Categories retrieved"));
     }
 
@@ -54,8 +50,7 @@ public class CategoryController {
     @PostMapping
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<CategoryResponse>> create(@Valid @RequestBody CategoryRequest request) {
-        Category category = categoryService.create(request);
-        return ResponseEntity.status(HttpStatus.CREATED)
-                .body(ApiResponse.success(categoryService.toResponse(category), "Category created"));
+        CategoryResponse response = categoryService.create(request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(response, "Category created"));
     }
 }

@@ -2,7 +2,6 @@ package com.edgareldy.springmicroservicestutorial.catalogservice.controller;
 
 import com.edgareldy.springmicroservicestutorial.catalogservice.dto.ProductRequest;
 import com.edgareldy.springmicroservicestutorial.catalogservice.dto.ProductResponse;
-import com.edgareldy.springmicroservicestutorial.catalogservice.entity.Product;
 import com.edgareldy.springmicroservicestutorial.catalogservice.service.ProductService;
 import com.edgareldy.springmicroservicestutorial.commonlib.dto.ApiResponse;
 import com.edgareldy.springmicroservicestutorial.commonlib.dto.PageResponse;
@@ -50,12 +49,9 @@ public class ProductController {
     @GetMapping
     public ResponseEntity<ApiResponse<PageResponse<ProductResponse>>> findAll(
             Pageable pageable, @Parameter(description = "Optional category filter") @RequestParam(required = false) Long categoryId) {
-        Page<Product> page = productService.findAll(pageable, categoryId);
+        Page<ProductResponse> page = productService.findAll(pageable, categoryId);
         PageResponse<ProductResponse> response = PageResponse.of(
-                page.getContent().stream().map(productService::toResponse).toList(),
-                page.getNumber(),
-                page.getSize(),
-                page.getTotalElements());
+                page.getContent(), page.getNumber(), page.getSize(), page.getTotalElements());
         return ResponseEntity.ok(ApiResponse.success(response, "Products retrieved"));
     }
 
@@ -65,16 +61,14 @@ public class ProductController {
                     + "response shape is formalized later by feature/contract-testing")
     @GetMapping("/{id}")
     public ResponseEntity<ApiResponse<ProductResponse>> findById(@PathVariable Long id) {
-        Product product = productService.findById(id);
-        return ResponseEntity.ok(ApiResponse.success(productService.toResponse(product), "Product retrieved"));
+        return ResponseEntity.ok(ApiResponse.success(productService.findById(id), "Product retrieved"));
     }
 
     @Operation(summary = "Create a product", description = "ADMIN only")
     @PostMapping
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<ProductResponse>> create(@Valid @RequestBody ProductRequest request) {
-        Product product = productService.create(request);
-        return ResponseEntity.status(HttpStatus.CREATED)
-                .body(ApiResponse.success(productService.toResponse(product), "Product created"));
+        ProductResponse response = productService.create(request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(response, "Product created"));
     }
 }

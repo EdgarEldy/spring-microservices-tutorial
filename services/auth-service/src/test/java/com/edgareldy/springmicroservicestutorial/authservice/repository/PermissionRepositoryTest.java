@@ -34,7 +34,7 @@ class PermissionRepositoryTest {
     private PermissionRepository permissionRepository;
 
     @Test
-    void existsByResourceIgnoreCaseAndActionIgnoreCase_trueWhenSamePairRegardlessOfCase() {
+    void _01_ShouldReturnTrue_WhenSamePairExistsRegardlessOfCase() {
         permissionRepository.save(Permission.builder().resource("PRODUCT").action("write").build());
 
         assertThat(permissionRepository.existsByResourceIgnoreCaseAndActionIgnoreCase("product", "WRITE"))
@@ -42,7 +42,7 @@ class PermissionRepositoryTest {
     }
 
     @Test
-    void existsByResourceIgnoreCaseAndActionIgnoreCase_falseWhenPairDoesNotMatch() {
+    void _02_ShouldReturnFalse_WhenPairDoesNotMatch() {
         permissionRepository.save(Permission.builder().resource("PRODUCT").action("WRITE").build());
 
         assertThat(permissionRepository.existsByResourceIgnoreCaseAndActionIgnoreCase("product", "READ"))

@@ -3,6 +3,7 @@ package com.edgareldy.springmicroservicestutorial.authservice.service.impl;
 import com.edgareldy.springmicroservicestutorial.authservice.dto.permission.PermissionRequest;
 import com.edgareldy.springmicroservicestutorial.authservice.dto.permission.PermissionResponse;
 import com.edgareldy.springmicroservicestutorial.authservice.entity.Permission;
+import com.edgareldy.springmicroservicestutorial.authservice.mapper.PermissionMapper;
 import com.edgareldy.springmicroservicestutorial.authservice.repository.PermissionRepository;
 import com.edgareldy.springmicroservicestutorial.authservice.service.PermissionService;
 import com.edgareldy.springmicroservicestutorial.commonlib.exception.BusinessRuleException;
@@ -14,7 +15,10 @@ import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Default {@link PermissionService} implementation, backed by
- * {@link PermissionRepository}.
+ * {@link PermissionRepository} and delegating entity-DTO mapping in both
+ * directions to {@link PermissionMapper}. Every method maps its result to a
+ * {@link PermissionResponse} before returning, since nothing outside this
+ * service ever needs the raw {@link Permission} entity.
  * <p>
  * Created by Edgar Muhamyangabo on 8/15/26
  * Author : Edgar Muhamyangabo
@@ -26,25 +30,24 @@ import org.springframework.transaction.annotation.Transactional;
 public class PermissionServiceImpl implements PermissionService {
 
     private final PermissionRepository permissionRepository;
+    private final PermissionMapper permissionMapper;
 
     @Override
     @Transactional
-    public Permission create(PermissionRequest request) {
+    public PermissionResponse create(PermissionRequest request) {
         if (permissionRepository.existsByResourceIgnoreCaseAndActionIgnoreCase(request.resource(), request.action())) {
             throw new BusinessRuleException(
                     "Permission already exists: " + request.resource() + ":" + request.action());
         }
-        Permission permission = Permission.builder()
-                .resource(request.resource())
-                .action(request.action())
-                .build();
-        return permissionRepository.save(permission);
+        Permission permission = permissionMapper.toEntity(request);
+        Permission saved = permissionRepository.save(permission);
+        return permissionMapper.toResponse(saved);
     }
 
     @Override
     @Transactional(readOnly = true)
-    public List<Permission> findAll() {
-        return permissionRepository.findAll();
+    public List<PermissionResponse> findAll() {
+        return permissionRepository.findAll().stream().map(permissionMapper::toResponse).toList();
     }
 
     @Override
@@ -53,10 +56,5 @@ public class PermissionServiceImpl implements PermissionService {
         Permission permission = permissionRepository.findById(permissionId)
                 .orElseThrow(() -> new ResourceNotFoundException("No permission found with id " + permissionId));
         permissionRepository.delete(permission);
-    }
-
-    @Override
-    public PermissionResponse toResponse(Permission permission) {
-        return new PermissionResponse(permission.getId(), permission.getResource(), permission.getAction());
     }
 }

@@ -11,6 +11,8 @@ import com.edgareldy.springmicroservicestutorial.authservice.dto.role.RoleReques
 import com.edgareldy.springmicroservicestutorial.authservice.dto.role.RoleResponse;
 import com.edgareldy.springmicroservicestutorial.authservice.entity.Permission;
 import com.edgareldy.springmicroservicestutorial.authservice.entity.Role;
+import com.edgareldy.springmicroservicestutorial.authservice.mapper.PermissionMapperImpl;
+import com.edgareldy.springmicroservicestutorial.authservice.mapper.RoleMapperImpl;
 import com.edgareldy.springmicroservicestutorial.authservice.repository.PermissionRepository;
 import com.edgareldy.springmicroservicestutorial.authservice.repository.RoleRepository;
 import com.edgareldy.springmicroservicestutorial.commonlib.exception.BusinessRuleException;
@@ -19,16 +21,26 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.test.util.ReflectionTestUtils;
 
 /**
  * Pure Mockito unit tests for {@link RoleServiceImpl}: {@link RoleRepository}
  * and {@link PermissionRepository} are mocked, no Spring context and no
  * database, complementing the Testcontainers-backed {@code RoleRepositoryTest}.
+ * The MapStruct-generated {@link RoleMapperImpl} (itself backed by a real
+ * {@link PermissionMapperImpl}) is instantiated for real and wired manually
+ * rather than via {@code @InjectMocks}: mocking a trivial generated mapper
+ * would add nothing and would require stubbing every field of every
+ * {@code toResponse} call. {@code componentModel = "spring"} makes MapStruct
+ * generate field injection ({@code @Autowired private PermissionMapper}), not
+ * a constructor parameter, so the dependency is wired via
+ * {@link ReflectionTestUtils#setField} after construction rather than passed
+ * to a constructor.
  * <p>
  * Created by Edgar Muhamyangabo on 8/15/26
  * Author : Edgar Muhamyangabo
@@ -44,23 +56,29 @@ class RoleServiceImplTest {
     @Mock
     private PermissionRepository permissionRepository;
 
-    @InjectMocks
     private RoleServiceImpl roleService;
 
+    @BeforeEach
+    void setUp() {
+        RoleMapperImpl roleMapper = new RoleMapperImpl();
+        ReflectionTestUtils.setField(roleMapper, "permissionMapper", new PermissionMapperImpl());
+        roleService = new RoleServiceImpl(roleRepository, permissionRepository, roleMapper);
+    }
+
     @Test
-    void create_newRoleName_persistsAndReturnsRole() {
+    void _01_ShouldPersistAndReturnRole_WhenRoleNameIsNew() {
         RoleRequest request = new RoleRequest("ADMIN");
         when(roleRepository.existsByRoleNameIgnoreCase("ADMIN")).thenReturn(false);
         when(roleRepository.save(any(Role.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        Role created = roleService.create(request);
+        RoleResponse created = roleService.create(request);
 
-        assertThat(created.getRoleName()).isEqualTo("ADMIN");
+        assertThat(created.roleName()).isEqualTo("ADMIN");
         verify(roleRepository).save(any(Role.class));
     }
 
     @Test
-    void create_duplicateRoleName_throwsBusinessRuleExceptionAndNeverSaves() {
+    void _02_ShouldThrowBusinessRuleExceptionAndNeverSave_WhenRoleNameIsDuplicate() {
         RoleRequest request = new RoleRequest("ADMIN");
         when(roleRepository.existsByRoleNameIgnoreCase("ADMIN")).thenReturn(true);
 
@@ -71,15 +89,15 @@ class RoleServiceImplTest {
     }
 
     @Test
-    void findAll_delegatesToRepository() {
-        Role role = Role.builder().id(1L).roleName("ADMIN").build();
+    void _03_ShouldDelegateToRepository_WhenAllRolesAreRequested() {
+        Role role = Role.builder().id(1L).roleName("ADMIN").permissions(Set.of()).build();
         when(roleRepository.findAll()).thenReturn(List.of(role));
 
-        assertThat(roleService.findAll()).containsExactly(role);
+        assertThat(roleService.findAll()).containsExactly(new RoleResponse(1L, "ADMIN", List.of()));
     }
 
     @Test
-    void findById_found_returnsRole() {
+    void _04_ShouldReturnRole_WhenRoleIsFound() {
         Role role = Role.builder().id(1L).roleName("ADMIN").build();
         when(roleRepository.findById(1L)).thenReturn(Optional.of(role));
 
@@ -87,7 +105,7 @@ class RoleServiceImplTest {
     }
 
     @Test
-    void findById_notFound_throwsResourceNotFoundException() {
+    void _05_ShouldThrowResourceNotFoundException_WhenRoleIsNotFound() {
         when(roleRepository.findById(99L)).thenReturn(Optional.empty());
 
         assertThatExceptionOfType(ResourceNotFoundException.class)
@@ -95,21 +113,22 @@ class RoleServiceImplTest {
     }
 
     @Test
-    void addPermission_addsToRoleAndSaves() {
+    void _06_ShouldAddToRoleAndSave_WhenPermissionIsAdded() {
         Role role = Role.builder().id(1L).roleName("ADMIN").permissions(new HashSet<>()).build();
         Permission permission = Permission.builder().id(2L).resource("PRODUCT").action("WRITE").build();
         when(roleRepository.findById(1L)).thenReturn(Optional.of(role));
         when(permissionRepository.findById(2L)).thenReturn(Optional.of(permission));
         when(roleRepository.save(role)).thenReturn(role);
 
-        Role updated = roleService.addPermission(1L, 2L);
+        RoleResponse updated = roleService.addPermission(1L, 2L);
 
-        assertThat(updated.getPermissions()).containsExactly(permission);
+        assertThat(updated.permissions()).hasSize(1);
+        assertThat(updated.permissions().get(0).resource()).isEqualTo("PRODUCT");
         verify(roleRepository).save(role);
     }
 
     @Test
-    void addPermission_permissionNotFound_throwsResourceNotFoundException() {
+    void _07_ShouldThrowResourceNotFoundException_WhenPermissionToAddIsNotFound() {
         Role role = Role.builder().id(1L).roleName("ADMIN").permissions(new HashSet<>()).build();
         when(roleRepository.findById(1L)).thenReturn(Optional.of(role));
         when(permissionRepository.findById(99L)).thenReturn(Optional.empty());
@@ -121,21 +140,21 @@ class RoleServiceImplTest {
     }
 
     @Test
-    void removePermission_removesFromRoleAndSaves() {
+    void _08_ShouldRemoveFromRoleAndSave_WhenPermissionIsRemoved() {
         Permission permission = Permission.builder().id(2L).resource("PRODUCT").action("WRITE").build();
         Role role = Role.builder().id(1L).roleName("ADMIN").permissions(new HashSet<>(Set.of(permission))).build();
         when(roleRepository.findById(1L)).thenReturn(Optional.of(role));
         when(permissionRepository.findById(2L)).thenReturn(Optional.of(permission));
         when(roleRepository.save(role)).thenReturn(role);
 
-        Role updated = roleService.removePermission(1L, 2L);
+        RoleResponse updated = roleService.removePermission(1L, 2L);
 
-        assertThat(updated.getPermissions()).isEmpty();
+        assertThat(updated.permissions()).isEmpty();
         verify(roleRepository).save(role);
     }
 
     @Test
-    void delete_found_deletesRole() {
+    void _09_ShouldDeleteRole_WhenRoleIsFound() {
         Role role = Role.builder().id(1L).roleName("ADMIN").build();
         when(roleRepository.findById(1L)).thenReturn(Optional.of(role));
 
@@ -145,26 +164,12 @@ class RoleServiceImplTest {
     }
 
     @Test
-    void delete_notFound_throwsResourceNotFoundExceptionAndNeverDeletes() {
+    void _10_ShouldThrowResourceNotFoundExceptionAndNeverDelete_WhenRoleIsNotFound() {
         when(roleRepository.findById(99L)).thenReturn(Optional.empty());
 
         assertThatExceptionOfType(ResourceNotFoundException.class)
                 .isThrownBy(() -> roleService.delete(99L));
 
         verify(roleRepository, never()).delete(any());
-    }
-
-    @Test
-    void toResponse_mapsRoleAndFlattensPermissions() {
-        Permission permission = Permission.builder().id(2L).resource("PRODUCT").action("WRITE").build();
-        Role role = Role.builder().id(1L).roleName("ADMIN").permissions(Set.of(permission)).build();
-
-        RoleResponse response = roleService.toResponse(role);
-
-        assertThat(response.id()).isEqualTo(1L);
-        assertThat(response.roleName()).isEqualTo("ADMIN");
-        assertThat(response.permissions()).hasSize(1);
-        assertThat(response.permissions().get(0).resource()).isEqualTo("PRODUCT");
-        assertThat(response.permissions().get(0).action()).isEqualTo("WRITE");
     }
 }

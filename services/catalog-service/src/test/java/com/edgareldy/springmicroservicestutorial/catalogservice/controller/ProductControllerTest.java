@@ -14,8 +14,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.edgareldy.springmicroservicestutorial.catalogservice.config.MethodSecurityConfig;
 import com.edgareldy.springmicroservicestutorial.catalogservice.dto.ProductRequest;
 import com.edgareldy.springmicroservicestutorial.catalogservice.dto.ProductResponse;
-import com.edgareldy.springmicroservicestutorial.catalogservice.entity.Category;
-import com.edgareldy.springmicroservicestutorial.catalogservice.entity.Product;
 import com.edgareldy.springmicroservicestutorial.catalogservice.security.JwtService;
 import com.edgareldy.springmicroservicestutorial.catalogservice.service.ProductService;
 import com.edgareldy.springmicroservicestutorial.commonlib.exception.ResourceNotFoundException;
@@ -71,25 +69,14 @@ class ProductControllerTest {
     @MockitoBean
     private JwtService jwtService;
 
-    private static Product product(long id, String name, double price, long categoryId) {
-        return Product.builder()
-                .id(id)
-                .productName(name)
-                .unitPrice(price)
-                .category(Category.builder().id(categoryId).categoryName("Books").build())
-                .build();
-    }
-
     private static ProductResponse response(long id, String name, double price, long categoryId) {
         return new ProductResponse(id, name, price, categoryId);
     }
 
     @Test
-    void findAllWithoutCategoryFilter_isPublicAndReturnsEveryProduct() throws Exception {
-        Product cleanCode = product(1L, "Clean Code", 39.90, 1L);
+    void _01_ShouldReturnEveryProductWithoutAuthentication_WhenNoCategoryFilterIsGiven() throws Exception {
         when(productService.findAll(any(), isNull()))
-                .thenReturn(new PageImpl<>(List.of(cleanCode), PageRequest.of(0, 10), 1));
-        when(productService.toResponse(cleanCode)).thenReturn(response(1L, "Clean Code", 39.90, 1L));
+                .thenReturn(new PageImpl<>(List.of(response(1L, "Clean Code", 39.90, 1L)), PageRequest.of(0, 10), 1));
 
         mockMvc.perform(get("/api/v1/catalog/products"))
                 .andExpect(status().isOk())
@@ -100,11 +87,9 @@ class ProductControllerTest {
     }
 
     @Test
-    void findAllWithCategoryFilter_passesCategoryIdThrough() throws Exception {
-        Product cleanCode = product(1L, "Clean Code", 39.90, 1L);
+    void _02_ShouldPassCategoryIdThrough_WhenCategoryFilterIsGiven() throws Exception {
         when(productService.findAll(any(), eq(1L)))
-                .thenReturn(new PageImpl<>(List.of(cleanCode), PageRequest.of(0, 10), 1));
-        when(productService.toResponse(cleanCode)).thenReturn(response(1L, "Clean Code", 39.90, 1L));
+                .thenReturn(new PageImpl<>(List.of(response(1L, "Clean Code", 39.90, 1L)), PageRequest.of(0, 10), 1));
 
         mockMvc.perform(get("/api/v1/catalog/products").param("categoryId", "1"))
                 .andExpect(status().isOk())
@@ -114,10 +99,8 @@ class ProductControllerTest {
     }
 
     @Test
-    void findByIdReturns200WhenFound() throws Exception {
-        Product cleanCode = product(1L, "Clean Code", 39.90, 1L);
-        when(productService.findById(1L)).thenReturn(cleanCode);
-        when(productService.toResponse(cleanCode)).thenReturn(response(1L, "Clean Code", 39.90, 1L));
+    void _03_ShouldReturn200_WhenProductIsFound() throws Exception {
+        when(productService.findById(1L)).thenReturn(response(1L, "Clean Code", 39.90, 1L));
 
         mockMvc.perform(get("/api/v1/catalog/products/1"))
                 .andExpect(status().isOk())
@@ -129,7 +112,7 @@ class ProductControllerTest {
     }
 
     @Test
-    void findByIdReturns404WhenMissing() throws Exception {
+    void _04_ShouldReturn404_WhenProductIsMissing() throws Exception {
         when(productService.findById(99L)).thenThrow(new ResourceNotFoundException("No product found with id 99"));
 
         mockMvc.perform(get("/api/v1/catalog/products/99"))
@@ -139,11 +122,9 @@ class ProductControllerTest {
 
     @Test
     @WithMockUser(roles = "ADMIN")
-    void createReturns201ForAdmin() throws Exception {
+    void _05_ShouldReturn201_WhenAdminCreatesProduct() throws Exception {
         ProductRequest request = new ProductRequest("Effective Java", 45.00, 1L);
-        Product created = product(2L, "Effective Java", 45.00, 1L);
-        when(productService.create(any())).thenReturn(created);
-        when(productService.toResponse(created)).thenReturn(response(2L, "Effective Java", 45.00, 1L));
+        when(productService.create(any())).thenReturn(response(2L, "Effective Java", 45.00, 1L));
 
         mockMvc.perform(post("/api/v1/catalog/products")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -160,7 +141,7 @@ class ProductControllerTest {
      */
     @Test
     @WithMockUser(roles = "USER")
-    void createReturnsForbiddenForNonAdmin() throws Exception {
+    void _06_ShouldReturn403_WhenNonAdminCreatesProduct() throws Exception {
         ProductRequest request = new ProductRequest("Effective Java", 45.00, 1L);
 
         mockMvc.perform(post("/api/v1/catalog/products")

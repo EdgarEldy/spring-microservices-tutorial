@@ -12,7 +12,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.edgareldy.springmicroservicestutorial.catalogservice.config.MethodSecurityConfig;
 import com.edgareldy.springmicroservicestutorial.catalogservice.dto.CategoryRequest;
 import com.edgareldy.springmicroservicestutorial.catalogservice.dto.CategoryResponse;
-import com.edgareldy.springmicroservicestutorial.catalogservice.entity.Category;
 import com.edgareldy.springmicroservicestutorial.catalogservice.security.JwtService;
 import com.edgareldy.springmicroservicestutorial.catalogservice.service.CategoryService;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -69,20 +68,14 @@ class CategoryControllerTest {
     @MockitoBean
     private JwtService jwtService;
 
-    private static Category category(long id, String name) {
-        return Category.builder().id(id).categoryName(name).build();
-    }
-
     private static CategoryResponse response(long id, String name) {
         return new CategoryResponse(id, name);
     }
 
     @Test
-    void findAllIsPublicAndReturnsPagedApiResponse() throws Exception {
-        Category books = category(1L, "Books");
+    void _01_ShouldReturnPagedApiResponseWithoutAuthentication_WhenCategoriesAreListed() throws Exception {
         when(categoryService.findAll(any()))
-                .thenReturn(new PageImpl<>(List.of(books), PageRequest.of(0, 10), 1));
-        when(categoryService.toResponse(books)).thenReturn(response(1L, "Books"));
+                .thenReturn(new PageImpl<>(List.of(response(1L, "Books")), PageRequest.of(0, 10), 1));
 
         mockMvc.perform(get("/api/v1/catalog/categories"))
                 .andExpect(status().isOk())
@@ -93,11 +86,9 @@ class CategoryControllerTest {
 
     @Test
     @WithMockUser(roles = "ADMIN")
-    void createReturns201ForAdmin() throws Exception {
+    void _02_ShouldReturn201_WhenAdminCreatesCategory() throws Exception {
         CategoryRequest request = new CategoryRequest("Garden");
-        Category created = category(2L, "Garden");
-        when(categoryService.create(any())).thenReturn(created);
-        when(categoryService.toResponse(created)).thenReturn(response(2L, "Garden"));
+        when(categoryService.create(any())).thenReturn(response(2L, "Garden"));
 
         mockMvc.perform(post("/api/v1/catalog/categories")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -114,7 +105,7 @@ class CategoryControllerTest {
      */
     @Test
     @WithMockUser(roles = "USER")
-    void createReturnsForbiddenForNonAdmin() throws Exception {
+    void _03_ShouldReturn403_WhenNonAdminCreatesCategory() throws Exception {
         CategoryRequest request = new CategoryRequest("Garden");
 
         mockMvc.perform(post("/api/v1/catalog/categories")
@@ -132,7 +123,7 @@ class CategoryControllerTest {
      * {@code AuthenticationCredentialsNotFoundException} to 401.
      */
     @Test
-    void createReturnsUnauthorizedWithoutAuthentication() throws Exception {
+    void _04_ShouldReturn401_WhenCategoryIsCreatedWithoutAuthentication() throws Exception {
         CategoryRequest request = new CategoryRequest("Garden");
 
         mockMvc.perform(post("/api/v1/catalog/categories")
@@ -151,7 +142,7 @@ class CategoryControllerTest {
      */
     @Test
     @WithMockUser(roles = "ADMIN")
-    void createRejectsInvalidPayload() throws Exception {
+    void _05_ShouldRejectCreation_WhenCategoryPayloadIsInvalid() throws Exception {
         CategoryRequest blankName = new CategoryRequest(" ");
 
         mockMvc.perform(post("/api/v1/catalog/categories")
