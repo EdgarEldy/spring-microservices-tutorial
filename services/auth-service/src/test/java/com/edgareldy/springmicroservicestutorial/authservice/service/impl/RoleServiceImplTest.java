@@ -66,7 +66,7 @@ class RoleServiceImplTest {
     }
 
     @Test
-    void create_newRoleName_persistsAndReturnsRole() {
+    void _01_ShouldPersistAndReturnRole_WhenRoleNameIsNew() {
         RoleRequest request = new RoleRequest("ADMIN");
         when(roleRepository.existsByRoleNameIgnoreCase("ADMIN")).thenReturn(false);
         when(roleRepository.save(any(Role.class))).thenAnswer(invocation -> invocation.getArgument(0));
@@ -78,7 +78,7 @@ class RoleServiceImplTest {
     }
 
     @Test
-    void create_duplicateRoleName_throwsBusinessRuleExceptionAndNeverSaves() {
+    void _02_ShouldThrowBusinessRuleExceptionAndNeverSave_WhenRoleNameIsDuplicate() {
         RoleRequest request = new RoleRequest("ADMIN");
         when(roleRepository.existsByRoleNameIgnoreCase("ADMIN")).thenReturn(true);
 
@@ -89,7 +89,7 @@ class RoleServiceImplTest {
     }
 
     @Test
-    void findAll_delegatesToRepository() {
+    void _03_ShouldDelegateToRepository_WhenAllRolesAreRequested() {
         Role role = Role.builder().id(1L).roleName("ADMIN").permissions(Set.of()).build();
         when(roleRepository.findAll()).thenReturn(List.of(role));
 
@@ -97,7 +97,7 @@ class RoleServiceImplTest {
     }
 
     @Test
-    void findById_found_returnsRole() {
+    void _04_ShouldReturnRole_WhenRoleIsFound() {
         Role role = Role.builder().id(1L).roleName("ADMIN").build();
         when(roleRepository.findById(1L)).thenReturn(Optional.of(role));
 
@@ -105,7 +105,7 @@ class RoleServiceImplTest {
     }
 
     @Test
-    void findById_notFound_throwsResourceNotFoundException() {
+    void _05_ShouldThrowResourceNotFoundException_WhenRoleIsNotFound() {
         when(roleRepository.findById(99L)).thenReturn(Optional.empty());
 
         assertThatExceptionOfType(ResourceNotFoundException.class)
@@ -113,7 +113,7 @@ class RoleServiceImplTest {
     }
 
     @Test
-    void addPermission_addsToRoleAndSaves() {
+    void _06_ShouldAddToRoleAndSave_WhenPermissionIsAdded() {
         Role role = Role.builder().id(1L).roleName("ADMIN").permissions(new HashSet<>()).build();
         Permission permission = Permission.builder().id(2L).resource("PRODUCT").action("WRITE").build();
         when(roleRepository.findById(1L)).thenReturn(Optional.of(role));
@@ -128,7 +128,7 @@ class RoleServiceImplTest {
     }
 
     @Test
-    void addPermission_permissionNotFound_throwsResourceNotFoundException() {
+    void _07_ShouldThrowResourceNotFoundException_WhenPermissionToAddIsNotFound() {
         Role role = Role.builder().id(1L).roleName("ADMIN").permissions(new HashSet<>()).build();
         when(roleRepository.findById(1L)).thenReturn(Optional.of(role));
         when(permissionRepository.findById(99L)).thenReturn(Optional.empty());
@@ -140,7 +140,7 @@ class RoleServiceImplTest {
     }
 
     @Test
-    void removePermission_removesFromRoleAndSaves() {
+    void _08_ShouldRemoveFromRoleAndSave_WhenPermissionIsRemoved() {
         Permission permission = Permission.builder().id(2L).resource("PRODUCT").action("WRITE").build();
         Role role = Role.builder().id(1L).roleName("ADMIN").permissions(new HashSet<>(Set.of(permission))).build();
         when(roleRepository.findById(1L)).thenReturn(Optional.of(role));
@@ -154,7 +154,7 @@ class RoleServiceImplTest {
     }
 
     @Test
-    void delete_found_deletesRole() {
+    void _09_ShouldDeleteRole_WhenRoleIsFound() {
         Role role = Role.builder().id(1L).roleName("ADMIN").build();
         when(roleRepository.findById(1L)).thenReturn(Optional.of(role));
 
@@ -164,7 +164,7 @@ class RoleServiceImplTest {
     }
 
     @Test
-    void delete_notFound_throwsResourceNotFoundExceptionAndNeverDeletes() {
+    void _10_ShouldThrowResourceNotFoundExceptionAndNeverDelete_WhenRoleIsNotFound() {
         when(roleRepository.findById(99L)).thenReturn(Optional.empty());
 
         assertThatExceptionOfType(ResourceNotFoundException.class)

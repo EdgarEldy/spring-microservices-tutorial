@@ -90,7 +90,7 @@ class ApiGatewayRoutingAndSecurityTest {
     }
 
     @Test
-    void routingToMockedDownstream_validToken_proxiesRequestAndResponse() {
+    void _01_ShouldProxyRequestAndResponse_WhenTokenIsValidAndDownstreamIsMocked() {
         webTestClient
                 .get()
                 .uri("/api/v1/orders/1")
@@ -104,7 +104,7 @@ class ApiGatewayRoutingAndSecurityTest {
     }
 
     @Test
-    void jwtRejection_protectedRouteNoToken_rejectedBeforeReachingDownstream() {
+    void _02_ShouldRejectBeforeReachingDownstream_WhenProtectedRouteHasNoToken() {
         webTestClient
                 .get()
                 .uri("/api/v1/orders/1")
@@ -114,7 +114,7 @@ class ApiGatewayRoutingAndSecurityTest {
     }
 
     @Test
-    void passThroughOnPublicRoute_noToken_stillReachesDownstream() {
+    void _03_ShouldReachDownstream_WhenPublicRouteHasNoToken() {
         webTestClient
                 .post()
                 .uri("/api/v1/auth/register")

@@ -84,7 +84,7 @@ class CustomerClientTest {
     }
 
     @Test
-    void getCustomer_success_deserializesApiResponseEnvelopeAndCustomerResponse() {
+    void _01_ShouldDeserializeEnvelopeAndCustomerResponse_WhenCustomerIsFound() {
         wireMockServer.stubFor(get(urlEqualTo("/api/v1/customers/1"))
                 .willReturn(okJson("""
                         {"success":true,"message":"Customer retrieved","data":{"id":1,"userId":1,"firstName":"Ada","lastName":"Lovelace","telephone":"+1234567890","email":"ada@example.com","address":"123 Main St"},"timestamp":"2026-08-16T00:00:00Z"}
@@ -99,7 +99,7 @@ class CustomerClientTest {
     }
 
     @Test
-    void getCustomer_notFound_throwsFeignExceptionNotFound() {
+    void _02_ShouldThrowFeignExceptionNotFound_WhenCustomerIsNotFound() {
         wireMockServer.stubFor(get(urlEqualTo("/api/v1/customers/99"))
                 .willReturn(aResponse().withStatus(404).withHeader("Content-Type", "application/json")
                         .withBody("""
@@ -110,7 +110,7 @@ class CustomerClientTest {
     }
 
     @Test
-    void getCustomer_unauthorized_throwsFeignException() {
+    void _03_ShouldThrowFeignException_WhenCallIsUnauthorized() {
         wireMockServer.stubFor(get(urlEqualTo("/api/v1/customers/1"))
                 .willReturn(aResponse().withStatus(401)));
 

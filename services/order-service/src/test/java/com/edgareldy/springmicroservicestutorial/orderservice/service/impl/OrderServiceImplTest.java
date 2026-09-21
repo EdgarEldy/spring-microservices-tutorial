@@ -132,7 +132,7 @@ class OrderServiceImplTest {
     }
 
     @Test
-    void create_newIdempotencyKey_validatesResolvesTotalAndPersists() {
+    void _01_ShouldValidateResolveTotalAndPersist_WhenIdempotencyKeyIsNew() {
         when(idempotencyKeyRepository.findByIdempotencyKey("key-1")).thenReturn(Optional.empty());
         when(customerClient.getCustomer(1L)).thenReturn(ApiResponse.success(customer(), "ok"));
         when(productClient.getProduct(1L)).thenReturn(ApiResponse.success(product(39.90), "ok"));
@@ -152,7 +152,7 @@ class OrderServiceImplTest {
     }
 
     @Test
-    void create_existingIdempotencyKey_returnsExistingOrderAndNeverRevalidates() {
+    void _02_ShouldReturnExistingOrderAndNeverRevalidate_WhenIdempotencyKeyAlreadyExists() {
         Order existingOrder = Order.builder().id(5L).customerId(1L).productId(1L).quantity(2).total(79.80).build();
         IdempotencyKey existingKey = IdempotencyKey.builder().idempotencyKey("key-1").order(existingOrder).build();
         when(idempotencyKeyRepository.findByIdempotencyKey("key-1")).thenReturn(Optional.of(existingKey));
@@ -166,7 +166,7 @@ class OrderServiceImplTest {
     }
 
     @Test
-    void create_productNotFound_throwsResourceNotFoundExceptionAndNeverSaves() {
+    void _03_ShouldThrowResourceNotFoundExceptionAndNeverSave_WhenProductIsNotFound() {
         when(idempotencyKeyRepository.findByIdempotencyKey("key-1")).thenReturn(Optional.empty());
         when(customerClient.getCustomer(1L)).thenReturn(ApiResponse.success(customer(), "ok"));
         when(productClient.getProduct(1L)).thenThrow(notFound());
@@ -178,7 +178,7 @@ class OrderServiceImplTest {
     }
 
     @Test
-    void create_customerNotFound_throwsResourceNotFoundExceptionAndNeverSaves() {
+    void _04_ShouldThrowResourceNotFoundExceptionAndNeverSave_WhenCustomerIsNotFound() {
         when(idempotencyKeyRepository.findByIdempotencyKey("key-1")).thenReturn(Optional.empty());
         when(customerClient.getCustomer(1L)).thenThrow(notFound());
 
@@ -190,7 +190,7 @@ class OrderServiceImplTest {
     }
 
     @Test
-    void create_productServiceUnavailable_throwsBusinessRuleExceptionAndNeverSaves() {
+    void _05_ShouldThrowBusinessRuleExceptionAndNeverSave_WhenProductServiceIsUnavailable() {
         when(idempotencyKeyRepository.findByIdempotencyKey("key-1")).thenReturn(Optional.empty());
         when(customerClient.getCustomer(1L)).thenReturn(ApiResponse.success(customer(), "ok"));
         when(productClient.getProduct(1L)).thenThrow(serviceUnavailable());
@@ -202,7 +202,7 @@ class OrderServiceImplTest {
     }
 
     @Test
-    void create_customerServiceUnavailable_throwsBusinessRuleExceptionAndNeverSaves() {
+    void _06_ShouldThrowBusinessRuleExceptionAndNeverSave_WhenCustomerServiceIsUnavailable() {
         when(idempotencyKeyRepository.findByIdempotencyKey("key-1")).thenReturn(Optional.empty());
         when(customerClient.getCustomer(1L)).thenThrow(serviceUnavailable());
 
@@ -214,7 +214,7 @@ class OrderServiceImplTest {
     }
 
     @Test
-    void create_concurrentDuplicateIdempotencyKey_returnsWinningOrderInsteadOfSurfacingConstraintViolation() {
+    void _07_ShouldReturnWinningOrder_WhenConcurrentRequestsUseTheSameIdempotencyKey() {
         Order winningOrder = Order.builder().id(7L).customerId(1L).productId(1L).quantity(2).total(79.80).build();
         IdempotencyKey winningKey = IdempotencyKey.builder().idempotencyKey("key-1").order(winningOrder).build();
         // First read (the pre-check): nothing yet. Second read (after the losing insert's
@@ -232,7 +232,7 @@ class OrderServiceImplTest {
     }
 
     @Test
-    void create_publishesOrderCreatedEventOnlyAfterCommit_neverBefore() {
+    void _08_ShouldPublishOrderCreatedEventOnlyAfterCommit_WhenOrderIsCreated() {
         when(idempotencyKeyRepository.findByIdempotencyKey("key-1")).thenReturn(Optional.empty());
         when(customerClient.getCustomer(1L)).thenReturn(ApiResponse.success(customer(), "ok"));
         when(productClient.getProduct(1L)).thenReturn(ApiResponse.success(product(39.90), "ok"));
@@ -253,7 +253,7 @@ class OrderServiceImplTest {
     }
 
     @Test
-    void create_neverPublishesOrderCreatedEventOnRollback() {
+    void _09_ShouldNeverPublishOrderCreatedEvent_WhenTransactionIsRolledBack() {
         when(idempotencyKeyRepository.findByIdempotencyKey("key-1")).thenReturn(Optional.empty());
         when(customerClient.getCustomer(1L)).thenReturn(ApiResponse.success(customer(), "ok"));
         when(productClient.getProduct(1L)).thenReturn(ApiResponse.success(product(39.90), "ok"));
@@ -273,7 +273,7 @@ class OrderServiceImplTest {
     }
 
     @Test
-    void findAll_delegatesToRepository() {
+    void _10_ShouldDelegateToRepository_WhenAllOrdersAreRequested() {
         Order order = Order.builder().id(1L).customerId(1L).productId(1L).quantity(1).total(39.90).build();
         var pageable = org.springframework.data.domain.PageRequest.of(0, 10);
         var page = new org.springframework.data.domain.PageImpl<>(java.util.List.of(order), pageable, 1);
@@ -283,7 +283,7 @@ class OrderServiceImplTest {
     }
 
     @Test
-    void findById_found_returnsEnrichedDetailResponse() {
+    void _11_ShouldReturnEnrichedDetailResponse_WhenOrderIsFound() {
         Order order = Order.builder().id(1L).customerId(1L).productId(1L).quantity(2).total(79.80).status(OrderStatus.PENDING).build();
         when(orderRepository.findById(1L)).thenReturn(Optional.of(order));
         when(productClient.getProduct(1L)).thenReturn(ApiResponse.success(product(39.90), "ok"));
@@ -296,7 +296,7 @@ class OrderServiceImplTest {
     }
 
     @Test
-    void findById_orderNotFound_throwsResourceNotFoundException() {
+    void _12_ShouldThrowResourceNotFoundException_WhenOrderIsNotFound() {
         when(orderRepository.findById(99L)).thenReturn(Optional.empty());
 
         assertThatExceptionOfType(ResourceNotFoundException.class)
@@ -304,7 +304,7 @@ class OrderServiceImplTest {
     }
 
     @Test
-    void markConfirmed_transitionsPendingToConfirmed() {
+    void _13_ShouldTransitionToConfirmed_WhenPendingOrderIsMarkedConfirmed() {
         Order order = Order.builder().id(1L).status(OrderStatus.PENDING).build();
         when(orderRepository.findById(1L)).thenReturn(Optional.of(order));
 
@@ -315,7 +315,7 @@ class OrderServiceImplTest {
     }
 
     @Test
-    void markConfirmationFailed_transitionsPendingToConfirmationFailed() {
+    void _14_ShouldTransitionToConfirmationFailed_WhenPendingOrderIsMarkedConfirmationFailed() {
         Order order = Order.builder().id(1L).status(OrderStatus.PENDING).build();
         when(orderRepository.findById(1L)).thenReturn(Optional.of(order));
 
@@ -326,7 +326,7 @@ class OrderServiceImplTest {
     }
 
     @Test
-    void markConfirmed_redeliveredEventOnAlreadyConfirmedOrder_isNoOp() {
+    void _15_ShouldDoNothing_WhenConfirmedEventIsRedeliveredOnConfirmedOrder() {
         Order order = Order.builder().id(1L).status(OrderStatus.CONFIRMED).build();
         when(orderRepository.findById(1L)).thenReturn(Optional.of(order));
 
@@ -337,7 +337,7 @@ class OrderServiceImplTest {
     }
 
     @Test
-    void markConfirmationFailed_redeliveredEventOnAlreadyConfirmationFailedOrder_isNoOp() {
+    void _16_ShouldDoNothing_WhenFailedEventIsRedeliveredOnFailedOrder() {
         Order order = Order.builder().id(1L).status(OrderStatus.CONFIRMATION_FAILED).build();
         when(orderRepository.findById(1L)).thenReturn(Optional.of(order));
 

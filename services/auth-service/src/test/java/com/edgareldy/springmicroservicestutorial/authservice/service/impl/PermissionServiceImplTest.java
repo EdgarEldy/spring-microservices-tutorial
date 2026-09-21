@@ -50,7 +50,7 @@ class PermissionServiceImplTest {
     }
 
     @Test
-    void create_newResourceActionPair_persistsAndReturnsPermission() {
+    void _01_ShouldPersistAndReturnPermission_WhenResourceActionPairIsNew() {
         PermissionRequest request = new PermissionRequest("PRODUCT", "WRITE");
         when(permissionRepository.existsByResourceIgnoreCaseAndActionIgnoreCase("PRODUCT", "WRITE"))
                 .thenReturn(false);
@@ -64,7 +64,7 @@ class PermissionServiceImplTest {
     }
 
     @Test
-    void create_duplicateResourceActionPair_throwsBusinessRuleExceptionAndNeverSaves() {
+    void _02_ShouldThrowBusinessRuleExceptionAndNeverSave_WhenResourceActionPairIsDuplicate() {
         PermissionRequest request = new PermissionRequest("PRODUCT", "WRITE");
         when(permissionRepository.existsByResourceIgnoreCaseAndActionIgnoreCase("PRODUCT", "WRITE"))
                 .thenReturn(true);
@@ -76,7 +76,7 @@ class PermissionServiceImplTest {
     }
 
     @Test
-    void findAll_delegatesToRepository() {
+    void _03_ShouldDelegateToRepository_WhenAllPermissionsAreRequested() {
         Permission permission = Permission.builder().id(1L).resource("PRODUCT").action("WRITE").build();
         when(permissionRepository.findAll()).thenReturn(List.of(permission));
 
@@ -84,7 +84,7 @@ class PermissionServiceImplTest {
     }
 
     @Test
-    void delete_found_deletesPermission() {
+    void _04_ShouldDeletePermission_WhenPermissionIsFound() {
         Permission permission = Permission.builder().id(1L).resource("PRODUCT").action("WRITE").build();
         when(permissionRepository.findById(1L)).thenReturn(Optional.of(permission));
 
@@ -94,7 +94,7 @@ class PermissionServiceImplTest {
     }
 
     @Test
-    void delete_notFound_throwsResourceNotFoundExceptionAndNeverDeletes() {
+    void _05_ShouldThrowResourceNotFoundExceptionAndNeverDelete_WhenPermissionIsNotFound() {
         when(permissionRepository.findById(99L)).thenReturn(Optional.empty());
 
         assertThatExceptionOfType(ResourceNotFoundException.class)

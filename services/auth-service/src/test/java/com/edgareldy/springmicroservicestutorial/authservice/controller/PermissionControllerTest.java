@@ -82,7 +82,7 @@ class PermissionControllerTest {
 
     @Test
     @WithMockUser(roles = "ADMIN")
-    void findAllReturns200ForAdmin() throws Exception {
+    void _01_ShouldReturn200_WhenAdminListsPermissions() throws Exception {
         when(permissionService.findAll()).thenReturn(List.of(response(1L, "PRODUCT", "READ")));
 
         mockMvc.perform(get("/api/v1/permissions"))
@@ -92,7 +92,7 @@ class PermissionControllerTest {
     }
 
     @Test
-    void findAllReturnsUnauthorizedWithoutAuthentication() throws Exception {
+    void _02_ShouldReturn401_WhenListingPermissionsWithoutAuthentication() throws Exception {
         mockMvc.perform(get("/api/v1/permissions"))
                 .andExpect(status().isUnauthorized());
 
@@ -101,7 +101,7 @@ class PermissionControllerTest {
 
     @Test
     @WithMockUser(roles = "USER")
-    void findAllReturnsForbiddenForNonAdmin() throws Exception {
+    void _03_ShouldReturn403_WhenNonAdminListsPermissions() throws Exception {
         mockMvc.perform(get("/api/v1/permissions"))
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.success").value(false));
@@ -111,7 +111,7 @@ class PermissionControllerTest {
 
     @Test
     @WithMockUser(roles = "ADMIN")
-    void createReturns201ForAdmin() throws Exception {
+    void _04_ShouldReturn201_WhenAdminCreatesPermission() throws Exception {
         PermissionRequest request = new PermissionRequest("ORDER", "WRITE");
         when(permissionService.create(any())).thenReturn(response(2L, "ORDER", "WRITE"));
 
@@ -125,7 +125,7 @@ class PermissionControllerTest {
 
     @Test
     @WithMockUser(roles = "USER")
-    void createReturnsForbiddenForNonAdmin() throws Exception {
+    void _05_ShouldReturn403_WhenNonAdminCreatesPermission() throws Exception {
         PermissionRequest request = new PermissionRequest("ORDER", "WRITE");
 
         mockMvc.perform(post("/api/v1/permissions")
@@ -139,7 +139,7 @@ class PermissionControllerTest {
 
     @Test
     @WithMockUser(roles = "ADMIN")
-    void deleteReturns200ForAdminWithApiResponseBody() throws Exception {
+    void _06_ShouldReturn200WithApiResponseBody_WhenAdminDeletesPermission() throws Exception {
         mockMvc.perform(delete("/api/v1/permissions/1"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true));
@@ -149,7 +149,7 @@ class PermissionControllerTest {
 
     @Test
     @WithMockUser(roles = "USER")
-    void deleteReturnsForbiddenForNonAdmin() throws Exception {
+    void _07_ShouldReturn403_WhenNonAdminDeletesPermission() throws Exception {
         mockMvc.perform(delete("/api/v1/permissions/1"))
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.success").value(false));
@@ -159,7 +159,7 @@ class PermissionControllerTest {
 
     @Test
     @WithMockUser(roles = "ADMIN")
-    void deleteReturns404WhenMissing() throws Exception {
+    void _08_ShouldReturn404_WhenDeletedPermissionIsMissing() throws Exception {
         org.mockito.Mockito.doThrow(new ResourceNotFoundException("Permission not found with id 99"))
                 .when(permissionService).delete(99L);
 
