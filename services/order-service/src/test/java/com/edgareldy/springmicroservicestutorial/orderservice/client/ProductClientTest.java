@@ -96,7 +96,7 @@ class ProductClientTest {
     }
 
     @Test
-    void getProduct_notFound_throwsFeignExceptionNotFound() {
+    void _01_ShouldThrowFeignExceptionNotFound_WhenProductIsNotFound() {
         wireMockServer.stubFor(get(urlEqualTo("/api/v1/catalog/products/99"))
                 .willReturn(aResponse().withStatus(404).withHeader("Content-Type", "application/json")
                         .withBody("""
@@ -107,7 +107,7 @@ class ProductClientTest {
     }
 
     @Test
-    void getProduct_serverError_throwsFeignException() {
+    void _02_ShouldThrowFeignException_WhenServerErrorOccurs() {
         wireMockServer.stubFor(get(urlEqualTo("/api/v1/catalog/products/1"))
                 .willReturn(aResponse().withStatus(500)));
 
