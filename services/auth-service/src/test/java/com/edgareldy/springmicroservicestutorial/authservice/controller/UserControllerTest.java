@@ -120,7 +120,7 @@ class UserControllerTest {
 
     @Test
     @WithMockUser(roles = "ADMIN")
-    void getByIdReturns200ForAdmin() throws Exception {
+    void _01_ShouldReturn200_WhenAdminGetsUserById() throws Exception {
         User user = userWithId(1L);
         when(userService.findById(1L)).thenReturn(user);
         when(userService.toResponse(user)).thenReturn(response(1L));
@@ -132,7 +132,7 @@ class UserControllerTest {
     }
 
     @Test
-    void getByIdReturns200ForOwner() throws Exception {
+    void _02_ShouldReturn200_WhenOwnerGetsOwnProfile() throws Exception {
         authenticateAs(userWithId(1L));
         User user = userWithId(1L);
         when(userService.findById(1L)).thenReturn(user);
@@ -144,7 +144,7 @@ class UserControllerTest {
     }
 
     @Test
-    void getByIdReturnsForbiddenForNonAdminNonOwner() throws Exception {
+    void _03_ShouldReturn403_WhenCallerIsNeitherAdminNorOwner() throws Exception {
         authenticateAs(userWithId(2L));
 
         mockMvc.perform(get("/api/v1/users/1"))
@@ -156,7 +156,7 @@ class UserControllerTest {
 
     @Test
     @WithMockUser(roles = "ADMIN")
-    void updateProfileReturns200ForAdmin() throws Exception {
+    void _04_ShouldReturn200_WhenAdminUpdatesProfile() throws Exception {
         UpdateProfileRequest request = new UpdateProfileRequest("Ada", "Byron");
         User updated = userWithId(1L);
         when(userService.updateProfile(eq(1L), any())).thenReturn(updated);
@@ -171,7 +171,7 @@ class UserControllerTest {
     }
 
     @Test
-    void updateProfileReturns200ForOwner() throws Exception {
+    void _05_ShouldReturn200_WhenOwnerUpdatesOwnProfile() throws Exception {
         authenticateAs(userWithId(1L));
         UpdateProfileRequest request = new UpdateProfileRequest("Ada", "Byron");
         User updated = userWithId(1L);
@@ -186,7 +186,7 @@ class UserControllerTest {
     }
 
     @Test
-    void updateProfileReturnsForbiddenForNonAdminNonOwner() throws Exception {
+    void _06_ShouldReturn403_WhenNeitherAdminNorOwnerUpdatesProfile() throws Exception {
         authenticateAs(userWithId(2L));
         UpdateProfileRequest request = new UpdateProfileRequest("Ada", "Byron");
 
@@ -201,7 +201,7 @@ class UserControllerTest {
 
     @Test
     @WithMockUser(roles = "ADMIN")
-    void updateProfileReturns404WhenUserMissing() throws Exception {
+    void _07_ShouldReturn404_WhenUpdatedUserIsMissing() throws Exception {
         UpdateProfileRequest request = new UpdateProfileRequest("Ada", "Byron");
         when(userService.updateProfile(eq(99L), any()))
                 .thenThrow(new ResourceNotFoundException("User not found with id 99"));

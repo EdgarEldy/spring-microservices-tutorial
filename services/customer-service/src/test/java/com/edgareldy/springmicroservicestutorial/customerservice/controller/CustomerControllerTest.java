@@ -84,7 +84,7 @@ class CustomerControllerTest {
     }
 
     @Test
-    void findByIdReturns200WhenAuthenticated() throws Exception {
+    void _01_ShouldReturn200_WhenCustomerIsFoundByAuthenticatedCaller() throws Exception {
         when(customerService.findById(1L)).thenReturn(response(1L));
 
         mockMvc.perform(get("/api/v1/customers/1").with(user("test")))
@@ -94,7 +94,7 @@ class CustomerControllerTest {
     }
 
     @Test
-    void findByIdReturnsUnauthorizedWithoutAuthentication() throws Exception {
+    void _02_ShouldReturn401_WhenCustomerIsQueriedWithoutAuthentication() throws Exception {
         mockMvc.perform(get("/api/v1/customers/1"))
                 .andExpect(status().isUnauthorized());
 
@@ -102,7 +102,7 @@ class CustomerControllerTest {
     }
 
     @Test
-    void findByIdReturns404WhenMissing() throws Exception {
+    void _03_ShouldReturn404_WhenCustomerIsMissing() throws Exception {
         when(customerService.findById(99L)).thenThrow(new ResourceNotFoundException("No customer found with id 99"));
 
         mockMvc.perform(get("/api/v1/customers/99").with(user("test")))
@@ -111,7 +111,7 @@ class CustomerControllerTest {
     }
 
     @Test
-    void createReturns201WhenAuthenticated() throws Exception {
+    void _04_ShouldReturn201_WhenAuthenticatedCallerCreatesCustomer() throws Exception {
         CustomerRequest request = new CustomerRequest(1L, "Ada", "Lovelace", "+1234567890", "ada@example.com", "123 Main St");
         when(customerService.create(any())).thenReturn(response(1L));
 
@@ -125,7 +125,7 @@ class CustomerControllerTest {
     }
 
     @Test
-    void createReturnsUnauthorizedWithoutAuthentication() throws Exception {
+    void _05_ShouldReturn401_WhenCustomerIsCreatedWithoutAuthentication() throws Exception {
         CustomerRequest request = new CustomerRequest(1L, "Ada", "Lovelace", "+1234567890", "ada@example.com", "123 Main St");
 
         mockMvc.perform(post("/api/v1/customers")
@@ -137,7 +137,7 @@ class CustomerControllerTest {
     }
 
     @Test
-    void createRejectsInvalidPayload() throws Exception {
+    void _06_ShouldRejectCreation_WhenCustomerPayloadIsInvalid() throws Exception {
         CustomerRequest blank = new CustomerRequest(1L, " ", "Lovelace", "+1234567890", "ada@example.com", "123 Main St");
 
         mockMvc.perform(post("/api/v1/customers")
@@ -151,7 +151,7 @@ class CustomerControllerTest {
     }
 
     @Test
-    void updateReturns200WhenAuthenticated() throws Exception {
+    void _07_ShouldReturn200_WhenAuthenticatedCallerUpdatesCustomer() throws Exception {
         CustomerUpdateRequest request =
                 new CustomerUpdateRequest("Grace", "Hopper", "+1987654321", "grace@example.com", "456 Oak Ave");
         when(customerService.update(any(), any())).thenReturn(response(1L));
@@ -165,7 +165,7 @@ class CustomerControllerTest {
     }
 
     @Test
-    void updateReturnsUnauthorizedWithoutAuthentication() throws Exception {
+    void _08_ShouldReturn401_WhenCustomerIsUpdatedWithoutAuthentication() throws Exception {
         CustomerUpdateRequest request =
                 new CustomerUpdateRequest("Grace", "Hopper", "+1987654321", "grace@example.com", "456 Oak Ave");
 

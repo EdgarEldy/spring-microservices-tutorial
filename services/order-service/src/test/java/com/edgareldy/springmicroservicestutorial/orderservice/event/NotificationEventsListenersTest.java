@@ -77,14 +77,14 @@ class NotificationEventsListenersTest {
     private KafkaTemplate<String, Object> kafkaTemplate;
 
     @Test
-    void orderConfirmedEvent_isConsumedAndTransitionsOrderToConfirmed() {
+    void _01_ShouldTransitionOrderToConfirmed_WhenOrderConfirmedEventIsConsumed() {
         kafkaTemplate.send("notification-events", "1", new OrderConfirmedEvent(1L));
 
         verify(orderService, timeout(10000)).markConfirmed(1L);
     }
 
     @Test
-    void notificationFailedEvent_isConsumedAndTransitionsOrderToConfirmationFailed() {
+    void _02_ShouldTransitionOrderToConfirmationFailed_WhenNotificationFailedEventIsConsumed() {
         kafkaTemplate.send("notification-events", "2", new NotificationFailedEvent(2L));
 
         verify(orderService, timeout(10000)).markConfirmationFailed(2L);

@@ -52,7 +52,7 @@ class OrderCreatedEventConsumerTest {
     }
 
     @Test
-    void onOrderCreated_nominalProduct_sendsEmailAndPublishesOrderConfirmedEvent() {
+    void _01_ShouldSendEmailAndPublishOrderConfirmedEvent_WhenProductIsNominal() {
         OrderCreatedEvent event = new OrderCreatedEvent(1L, 1L, 1L, 2, 79.80);
 
         consumer.onOrderCreated(event);
@@ -63,7 +63,7 @@ class OrderCreatedEventConsumerTest {
     }
 
     @Test
-    void onOrderCreated_simulatedFailureProductId_skipsEmailAndPublishesNotificationFailedEvent() {
+    void _02_ShouldSkipEmailAndPublishNotificationFailedEvent_WhenProductIdSimulatesFailure() {
         OrderCreatedEvent event = new OrderCreatedEvent(2L, 1L, 999L, 1, 39.90);
 
         consumer.onOrderCreated(event);

@@ -91,7 +91,7 @@ class ProductClientCircuitBreakerTest {
     }
 
     @Test
-    void catalogServiceDown_circuitOpensAfterThreshold_thenShortCircuitsToFallback() {
+    void _01_ShouldOpenCircuitAndShortCircuitToFallback_WhenCatalogServiceStaysDownPastThreshold() {
         wireMockServer.stubFor(
                 get(urlMatching("/api/v1/catalog/products/.*")).willReturn(aResponse().withStatus(500)));
 

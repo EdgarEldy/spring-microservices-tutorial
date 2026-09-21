@@ -74,7 +74,7 @@ class ProductControllerTest {
     }
 
     @Test
-    void findAllWithoutCategoryFilter_isPublicAndReturnsEveryProduct() throws Exception {
+    void _01_ShouldReturnEveryProductWithoutAuthentication_WhenNoCategoryFilterIsGiven() throws Exception {
         when(productService.findAll(any(), isNull()))
                 .thenReturn(new PageImpl<>(List.of(response(1L, "Clean Code", 39.90, 1L)), PageRequest.of(0, 10), 1));
 
@@ -87,7 +87,7 @@ class ProductControllerTest {
     }
 
     @Test
-    void findAllWithCategoryFilter_passesCategoryIdThrough() throws Exception {
+    void _02_ShouldPassCategoryIdThrough_WhenCategoryFilterIsGiven() throws Exception {
         when(productService.findAll(any(), eq(1L)))
                 .thenReturn(new PageImpl<>(List.of(response(1L, "Clean Code", 39.90, 1L)), PageRequest.of(0, 10), 1));
 
@@ -99,7 +99,7 @@ class ProductControllerTest {
     }
 
     @Test
-    void findByIdReturns200WhenFound() throws Exception {
+    void _03_ShouldReturn200_WhenProductIsFound() throws Exception {
         when(productService.findById(1L)).thenReturn(response(1L, "Clean Code", 39.90, 1L));
 
         mockMvc.perform(get("/api/v1/catalog/products/1"))
@@ -112,7 +112,7 @@ class ProductControllerTest {
     }
 
     @Test
-    void findByIdReturns404WhenMissing() throws Exception {
+    void _04_ShouldReturn404_WhenProductIsMissing() throws Exception {
         when(productService.findById(99L)).thenThrow(new ResourceNotFoundException("No product found with id 99"));
 
         mockMvc.perform(get("/api/v1/catalog/products/99"))
@@ -122,7 +122,7 @@ class ProductControllerTest {
 
     @Test
     @WithMockUser(roles = "ADMIN")
-    void createReturns201ForAdmin() throws Exception {
+    void _05_ShouldReturn201_WhenAdminCreatesProduct() throws Exception {
         ProductRequest request = new ProductRequest("Effective Java", 45.00, 1L);
         when(productService.create(any())).thenReturn(response(2L, "Effective Java", 45.00, 1L));
 
@@ -141,7 +141,7 @@ class ProductControllerTest {
      */
     @Test
     @WithMockUser(roles = "USER")
-    void createReturnsForbiddenForNonAdmin() throws Exception {
+    void _06_ShouldReturn403_WhenNonAdminCreatesProduct() throws Exception {
         ProductRequest request = new ProductRequest("Effective Java", 45.00, 1L);
 
         mockMvc.perform(post("/api/v1/catalog/products")

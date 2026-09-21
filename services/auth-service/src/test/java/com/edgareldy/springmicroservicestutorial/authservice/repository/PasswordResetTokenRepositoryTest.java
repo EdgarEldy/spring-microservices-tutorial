@@ -53,7 +53,7 @@ class PasswordResetTokenRepositoryTest {
     }
 
     @Test
-    void findByToken_existingToken_returnsTokenWithAssociatedUser() {
+    void _01_ShouldReturnTokenWithAssociatedUser_WhenTokenExists() {
         User user = persistUser("katherine@example.com");
         passwordResetTokenRepository.save(PasswordResetToken.builder()
                 .user(user)
@@ -70,12 +70,12 @@ class PasswordResetTokenRepositoryTest {
     }
 
     @Test
-    void findByToken_unknownToken_returnsEmpty() {
+    void _02_ShouldReturnEmpty_WhenTokenIsUnknown() {
         assertThat(passwordResetTokenRepository.findByToken("does-not-exist")).isEmpty();
     }
 
     @Test
-    void deleteAllByExpiryDateBefore_removesOnlyExpiredTokens() {
+    void _03_ShouldRemoveOnlyExpiredTokens_WhenDeletingByExpiryDateBefore() {
         User user = persistUser("dorothy@example.com");
         PasswordResetToken expired = passwordResetTokenRepository.save(PasswordResetToken.builder()
                 .user(user)

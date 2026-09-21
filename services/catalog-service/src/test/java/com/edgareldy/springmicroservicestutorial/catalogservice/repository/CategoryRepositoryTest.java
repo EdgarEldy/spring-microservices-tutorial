@@ -41,7 +41,7 @@ class CategoryRepositoryTest {
     }
 
     @Test
-    void save_persistsCategoryWithGeneratedId() {
+    void _01_ShouldPersistCategoryWithGeneratedId_WhenCategoryIsSaved() {
         Category saved = categoryRepository.save(newCategory("Books"));
 
         assertThat(saved.getId()).isNotNull();
@@ -49,7 +49,7 @@ class CategoryRepositoryTest {
     }
 
     @Test
-    void findAll_paginated_returnsOnlyRequestedPageAndCorrectTotal() {
+    void _02_ShouldReturnOnlyRequestedPageAndCorrectTotal_WhenFindingAllPaginated() {
         categoryRepository.save(newCategory("Books"));
         categoryRepository.save(newCategory("Electronics"));
         categoryRepository.save(newCategory("Garden"));

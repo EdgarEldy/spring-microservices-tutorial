@@ -74,7 +74,7 @@ class AuthControllerTest {
     private UserDetailsServiceImpl userDetailsService;
 
     @Test
-    void registerReturns201WithCreatedUser() throws Exception {
+    void _01_ShouldReturn201WithCreatedUser_WhenRegistrationSucceeds() throws Exception {
         RegisterRequest request = new RegisterRequest("Jane", "Doe", "jane@example.com", "password1");
         UserResponse response = new UserResponse(1L, "Jane", "Doe", "jane@example.com", false, false, List.of());
         when(authService.register(any(RegisterRequest.class))).thenReturn(response);
@@ -89,7 +89,7 @@ class AuthControllerTest {
     }
 
     @Test
-    void registerReturns400WhenBusinessRuleViolated() throws Exception {
+    void _02_ShouldReturn400_WhenRegistrationViolatesBusinessRule() throws Exception {
         RegisterRequest request = new RegisterRequest("Jane", "Doe", "jane@example.com", "password1");
         when(authService.register(any(RegisterRequest.class)))
                 .thenThrow(new BusinessRuleException("Email already in use"));
@@ -107,7 +107,7 @@ class AuthControllerTest {
      * {@code AuthExceptionHandler.handleValidation}, not the catch-all {@code Exception} handler.
      */
     @Test
-    void registerRejectsInvalidPayload() throws Exception {
+    void _03_ShouldRejectRegistration_WhenPayloadIsInvalid() throws Exception {
         RegisterRequest request = new RegisterRequest("", "", "not-an-email", "short");
 
         mockMvc.perform(post("/api/v1/auth/register")
@@ -120,7 +120,7 @@ class AuthControllerTest {
     }
 
     @Test
-    void activateAccountReturns200AndDelegatesToService() throws Exception {
+    void _04_ShouldReturn200AndDelegateToService_WhenAccountIsActivated() throws Exception {
         mockMvc.perform(get("/api/v1/auth/activate-account").param("token", "activation-token"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true));
@@ -129,7 +129,7 @@ class AuthControllerTest {
     }
 
     @Test
-    void activateAccountReturns400WhenTokenInvalid() throws Exception {
+    void _05_ShouldReturn400_WhenActivationTokenIsInvalid() throws Exception {
         org.mockito.Mockito.doThrow(new InvalidTokenException("Activation token not found"))
                 .when(authService).activateAccount("bad-token");
 
@@ -140,7 +140,7 @@ class AuthControllerTest {
     }
 
     @Test
-    void loginReturns200WithToken() throws Exception {
+    void _06_ShouldReturn200WithToken_WhenLoginSucceeds() throws Exception {
         LoginRequest request = new LoginRequest("jane@example.com", "password1");
         when(authService.login(any(LoginRequest.class))).thenReturn(new AuthResponse("jwt-token"));
 
@@ -153,7 +153,7 @@ class AuthControllerTest {
     }
 
     @Test
-    void loginReturns401OnBadCredentials() throws Exception {
+    void _07_ShouldReturn401_WhenCredentialsAreBad() throws Exception {
         LoginRequest request = new LoginRequest("jane@example.com", "wrong-password");
         when(authService.login(any(LoginRequest.class))).thenThrow(new BadCredentialsException("Bad credentials"));
 
@@ -169,7 +169,7 @@ class AuthControllerTest {
      * Same validation coverage as {@link #registerRejectsInvalidPayload()}, for {@code LoginRequest}.
      */
     @Test
-    void loginRejectsInvalidPayload() throws Exception {
+    void _08_ShouldRejectLogin_WhenPayloadIsInvalid() throws Exception {
         LoginRequest request = new LoginRequest("not-an-email", "");
 
         mockMvc.perform(post("/api/v1/auth/login")
@@ -183,7 +183,7 @@ class AuthControllerTest {
 
     @Test
     @WithMockUser(username = "jane@example.com")
-    void logoutReturns200AndExtractsBearerToken() throws Exception {
+    void _09_ShouldReturn200AndExtractBearerToken_WhenLogoutIsCalled() throws Exception {
         mockMvc.perform(post("/api/v1/auth/logout").header("Authorization", "Bearer jwt-token"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
@@ -194,7 +194,7 @@ class AuthControllerTest {
 
     @Test
     @WithMockUser(username = "jane@example.com")
-    void meReturns200WithCurrentUserProfile() throws Exception {
+    void _10_ShouldReturn200WithCurrentUserProfile_WhenMeIsQueried() throws Exception {
         UserResponse response = new UserResponse(1L, "Jane", "Doe", "jane@example.com", true, false, List.of());
         when(authService.me()).thenReturn(response);
 
@@ -205,7 +205,7 @@ class AuthControllerTest {
     }
 
     @Test
-    void forgotPasswordReturns200AndDelegatesToService() throws Exception {
+    void _11_ShouldReturn200AndDelegateToService_WhenForgotPasswordIsRequested() throws Exception {
         ForgotPasswordRequest request = new ForgotPasswordRequest("jane@example.com");
 
         mockMvc.perform(post("/api/v1/auth/forgot-password")
@@ -218,7 +218,7 @@ class AuthControllerTest {
     }
 
     @Test
-    void resetPasswordReturns200AndDelegatesToService() throws Exception {
+    void _12_ShouldReturn200AndDelegateToService_WhenPasswordIsReset() throws Exception {
         ResetPasswordRequest request = new ResetPasswordRequest("reset-token", "newPassword1");
 
         mockMvc.perform(post("/api/v1/auth/reset-password")
@@ -231,7 +231,7 @@ class AuthControllerTest {
     }
 
     @Test
-    void resetPasswordReturns400WhenTokenInvalid() throws Exception {
+    void _13_ShouldReturn400_WhenResetTokenIsInvalid() throws Exception {
         ResetPasswordRequest request = new ResetPasswordRequest("bad-token", "newPassword1");
         org.mockito.Mockito.doThrow(new InvalidTokenException("Reset token expired"))
                 .when(authService).resetPassword("bad-token", "newPassword1");
