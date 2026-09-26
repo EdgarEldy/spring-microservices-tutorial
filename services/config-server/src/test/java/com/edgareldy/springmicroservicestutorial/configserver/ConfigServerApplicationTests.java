@@ -29,12 +29,12 @@ class ConfigServerApplicationTests {
     private int port;
 
     @Test
-    void _01_ShouldLoadApplicationContext_WhenApplicationStarts() {
+    void contextLoads() {
         assertThat(port).isPositive();
     }
 
     @Test
-    void _02_ShouldServeCatalogServiceConfig_WhenNativeConfigRepoIsQueried() {
+    void _01_ShouldServeCatalogServiceConfig_WhenNativeConfigRepoIsQueried() {
         RestTestClient client = RestTestClient.bindToServer()
                 .baseUrl("http://localhost:" + port)
                 .build();
