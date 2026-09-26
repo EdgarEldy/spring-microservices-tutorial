@@ -23,7 +23,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 class DiscoveryServerApplicationTests {
 
     @Test
-    void _01_ShouldLoadApplicationContext_WhenApplicationStarts(ApplicationContext context) {
+    void contextLoads(ApplicationContext context) {
         assertThat(context).isNotNull();
         assertThat(context.containsBean("eurekaServerBootstrap")).isTrue();
     }
